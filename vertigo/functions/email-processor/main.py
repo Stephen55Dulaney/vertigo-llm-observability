@@ -30,6 +30,60 @@ PROJECTS = ['vertigo', 'memento', 'gemino']
 meeting_processor_url = "https://us-central1-vertigo-466116.cloudfunctions.net/meeting-processor-v2"
 status_generator_url = "https://us-central1-vertigo-466116.cloudfunctions.net/status-generator"
 
+# Email command patterns
+VERTIGO_COMMANDS = [
+    'list this week',
+    'total stats', 
+    'list projects',
+    'help',
+    'prompt report'
+]
+
+def is_vertigo_command(subject):
+    """Check if email subject contains a Vertigo command."""
+    subject_lower = subject.lower().strip()
+    
+    # Remove common reply/forward prefixes
+    if subject_lower.startswith('re:'):
+        subject_lower = subject_lower[3:].strip()
+    elif subject_lower.startswith('fwd:'):
+        subject_lower = subject_lower[4:].strip()
+    
+    # Check for Vertigo prefix
+    if subject_lower.startswith('vertigo:'):
+        subject_lower = subject_lower[8:].strip()
+    
+    return any(subject_lower.startswith(cmd) for cmd in VERTIGO_COMMANDS)
+
+def process_vertigo_command(subject, body, sender):
+    """Process Vertigo email commands and return response."""
+    try:
+        # Import the command parser (you'll need to add this file to the function)
+        from email_command_parser import EmailCommandParser
+        
+        parser = EmailCommandParser()
+        result = parser.parse_command(subject, body)
+        
+        if result:
+            return {
+                'success': True,
+                'subject': result['subject'],
+                'body': result['body'],
+                'command': result['command']
+            }
+        else:
+            return {
+                'success': False,
+                'error': 'No matching command found'
+            }
+            
+    except Exception as e:
+        logger.error(f"Error processing Vertigo command: {e}")
+        return {
+            'success': False,
+            'error': f'Error processing command: {str(e)}'
+        }
+
 def get_secret(secret_name):
     """Retrieve a secret from Secret Manager."""
     client = secretmanager.SecretManagerServiceClient()
@@ -370,7 +424,21 @@ def process_unread_emails(request=None):
                 body = get_email_body(payload)
                 
                 # Determine if this is a status request or meeting transcript
-                if is_status_request(subject, body):
+                if is_vertigo_command(subject):
+                    logger.info(f"Processing Vertigo command: {subject}")
+                    command_result = process_vertigo_command(subject, body, sender)
+                    
+                    if command_result['success']:
+                        # Send command response
+                        send_reply(service, msg_data, sender, command_result['subject'], command_result['body'])
+                        logger.info(f"Sent command response for: {command_result['command']}")
+                    else:
+                        # Send error response
+                        error_body = f"Error: {command_result['error']}\n\nSend 'Vertigo: Help' for available commands."
+                        send_reply(service, msg_data, sender, "Vertigo: Error", error_body)
+                        logger.error(f"Command error: {command_result['error']}")
+                        
+                elif is_status_request(subject, body):
                     process_status_request(service, msg_data, subject, body, sender)
                 elif is_daily_summary_request(subject, body):
                     process_daily_summary(service, msg_data, subject, body, sender)
