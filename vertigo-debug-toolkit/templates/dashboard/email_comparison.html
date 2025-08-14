@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Email Format Comparison - Vertigo Debug Toolkit{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Gmail-like styling for email comparison */
+.email-container {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.email-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.email-sender {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sender-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.sender-info {
+    flex-grow: 1;
+}
+
+.sender-name {
+    font-weight: 600;
+    color: #202124;
+    font-size: 14px;
+    margin: 0;
+}
+
+.sender-email {
+    color: #5f6368;
+    font-size: 12px;
+    margin: 0;
+}
+
+.email-timestamp {
+    color: #5f6368;
+    font-size: 12px;
+}
+
+.email-subject {
+    background-color: #ffffff;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.email-subject h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+}
+
+.email-body {
+    padding: 24px;
+    line-height: 1.6;
+    color: #202124;
+    font-size: 14px;
+}
+
+.email-body h4 {
+    color: #1a73e8;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 20px 0 12px 0;
+    border-bottom: 2px solid #e8f0fe;
+    padding-bottom: 8px;
+}
+
+.email-body ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.email-body li {
+    margin: 6px 0;
+}
+
+.comparison-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin: 20px 0;
+}
+
+.comparison-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+}
+
+.comparison-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+}
+
+.comparison-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+.metrics-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.metric-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 16px;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1a73e8;
+    margin-bottom: 4px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: #5f6368;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.score-excellent { color: #137333; }
+.score-good { color: #1a73e8; }
+.score-fair { color: #f57c00; }
+.score-poor { color: #d93025; }
+
+.diff-highlight {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+}
+
+.diff-added {
+    background-color: #d1ecf1;
+    border-left: 4px solid #17a2b8;
+}
+
+.diff-removed {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+}
+
+.evaluation-summary {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 30px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.evaluation-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1565c0;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.winner-badge {
+    display: inline-block;
+    background: #4caf50;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 8px;
+}
+
+.participants-list {
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 12px 0;
+}
+
+.participants-list strong {
+    color: #1a73e8;
+}
+
+@media (max-width: 768px) {
+    .comparison-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="bi bi-envelope-check me-2"></i>
+                        Email Format Comparison
+                    </h1>
+                    <p class="text-muted">Compare LLM evaluation results in human-readable email format</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="loadComparison()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Refresh Comparison
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="exportComparison()">
+                        <i class="bi bi-download me-1"></i>
+                        Export HTML
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Summary -->
+    <div class="evaluation-summary" id="evaluationSummary">
+        <div class="evaluation-title">
+            LLM Evaluation Results Summary
+        </div>
+        <div class="row">
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-excellent" id="overallScore">85%</div>
+                <div class="metric-label">Overall Match Score</div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-good" id="responseTime">1.2s</div>
+                <div class="metric-label">Avg Response Time</div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-fair" id="totalCost">$0.045</div>
+                <div class="metric-label">Total Cost</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Headers -->
+    <div class="comparison-container">
+        <div class="comparison-header">
+            <div class="comparison-label">Actual Email</div>
+            <div class="comparison-subtitle">From Gmail inbox</div>
+        </div>
+        <div class="comparison-header">
+            <div class="comparison-label">LLM Generated Result</div>
+            <div class="comparison-subtitle">From evaluation test</div>
+        </div>
+    </div>
+
+    <!-- Email Comparison -->
+    <div class="comparison-container" id="emailComparison">
+        <!-- Actual Email -->
+        <div class="email-container">
+            <div class="email-header">
+                <div class="email-sender">
+                    <div class="sender-avatar">VA</div>
+                    <div class="sender-info">
+                        <div class="sender-name">Vertigo Agent</div>
+                        <div class="sender-email">vertigo.agent.2025@gmail.com</div>
+                    </div>
+                </div>
+                <div class="email-timestamp">Aug 5, 2025, 2:30 PM</div>
+            </div>
+            
+            <div class="email-subject">
+                <h3>Meeting Summary</h3>
+            </div>
+            
+            <div class="email-body" id="actualEmail">
+                <h4>Key Points</h4>
+                <ul>
+                    <li>Daily planning and goal setting discussion</li>
+                    <li>Google Agent Space exploration and setup</li>
+                    <li>AI enablement strategy for workflow optimization</li>
+                </ul>
+                
+                <h4>Action Items</h4>
+                <ul>
+                    <li><strong>Max:</strong> Complete migration of legacy systems by Friday</li>
+                    <li><strong>Sarah:</strong> Research AI tools for customer service automation</li>
+                    <li><strong>Team:</strong> Review and approve new workflow documentation</li>
+                </ul>
+                
+                <h4>Next Steps</h4>
+                <ul>
+                    <li>Schedule follow-up meeting for next week</li>
+                    <li>Implement priority AI tools identified in research</li>
+                    <li>Begin pilot testing of new workflow processes</li>
+                </ul>
+                
+                <div class="participants-list">
+                    <strong>Participants:</strong> Max Thompson, Sarah Chen, Alex Rodriguez, Jordan Kim
+                </div>
+            </div>
+        </div>
+
+        <!-- LLM Generated Result -->
+        <div class="email-container">
+            <div class="email-header">
+                <div class="email-sender">
+                    <div class="sender-avatar">LLM</div>
+                    <div class="sender-info">
+                        <div class="sender-name">LLM Test Result</div>
+                        <div class="sender-email">evaluation@vertigo.com</div>
+                    </div>
+                </div>
+                <div class="email-timestamp">Aug 5, 2025, 2:31 PM</div>
+            </div>
+            
+            <div class="email-subject">
+                <h3>Meeting Summary</h3>
+            </div>
+            
+            <div class="email-body" id="llmEmail">
+                <h4>Key Points</h4>
+                <ul>
+                    <li>Daily planning and goal setting discussion</li>
+                    <li class="diff-highlight">Google Agent workspace configuration and implementation</li>
+                    <li>AI enablement strategy for workflow optimization</li>
+                </ul>
+                
+                <h4>Action Items</h4>
+                <ul>
+                    <li><strong>Max:</strong> Complete migration of legacy systems by Friday</li>
+                    <li><strong>Sarah:</strong> Research AI tools for customer service automation</li>
+                    <li class="diff-added"><strong>Jordan:</strong> Update team documentation with new processes</li>
+                    <li><strong>Team:</strong> Review and approve new workflow documentation</li>
+                </ul>
+                
+                <h4>Next Steps</h4>
+                <ul>
+                    <li>Schedule follow-up meeting for next week</li>
+                    <li>Implement priority AI tools identified in research</li>
+                    <li>Begin pilot testing of new workflow processes</li>
+                    <li class="diff-added">Conduct training session on new AI tools</li>
+                </ul>
+                
+                <div class="participants-list">
+                    <strong>Participants:</strong> Max Thompson, Sarah Chen, Alex Rodriguez, Jordan Kim
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Metrics -->
+    <div class="metrics-panel">
+        <h4><i class="bi bi-graph-up me-2"></i>Detailed Evaluation Metrics</h4>
+        <div class="metrics-grid" id="detailedMetrics">
+            <div class="metric-card">
+                <div class="metric-value score-excellent">92%</div>
+                <div class="metric-label">Content Accuracy</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value score-good">78%</div>
+                <div class="metric-label">Structure Match</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value score-fair">65%</div>
+                <div class="metric-label">Tone Consistency</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value score-good">84%</div>
+                <div class="metric-label">Completeness</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value score-excellent">96%</div>
+                <div class="metric-label">Format Compliance</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value score-poor">45%</div>
+                <div class="metric-label">Factual Precision</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-lightbulb me-2"></i>
+                Optimization Recommendations
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Areas of Excellence</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Content accuracy is very high (92%)
+                        </li>
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Format compliance nearly perfect (96%)
+                        </li>
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Response time within acceptable range
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Improvement Opportunities</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                            Improve factual precision (currently 45%)
+                        </li>
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                            Enhance tone consistency matching
+                        </li>
+                        <li class="list-group-item border-0 px-0">
+                            <i class="bi bi-info-circle text-info me-2"></i>
+                            Consider prompt refinement for better structure
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// JavaScript functions for email comparison functionality
+function loadComparison() {
+    // Show loading state
+    document.getElementById('evaluationSummary').innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+    
+    // Load sample comparison data
+    fetch('/dashboard/api/email-comparison/sample')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                updateComparisonDisplay(data.data);
+            } else {
+                showError('Failed to load comparison data: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            showError('Error loading comparison: ' + error.message);
+        });
+}
+
+function updateComparisonDisplay(data) {
+    try {
+        // Ensure data object exists
+        if (!data) {
+            showError('No data received from server');
+            return;
+        }
+        
+        // First restore the evaluation summary HTML structure
+        restoreEvaluationSummary();
+        
+        // Update evaluation summary with safe defaults
+        if (data.metrics) {
+            updateEvaluationSummary(data.metrics);
+        }
+        
+        // Update actual email
+        if (data.actual_email) {
+            updateEmailContent('actual', data.actual_email);
+        }
+        
+        // Update LLM email with differences highlighted
+        if (data.llm_email) {
+            updateEmailContentWithDiffs('llm', data.llm_email, data.differences);
+        }
+        
+        // Update detailed metrics
+        if (data.metrics) {
+            updateDetailedMetrics(data.metrics);
+        }
+        
+        // Update recommendations
+        if (data.recommendations || data.strengths) {
+            updateRecommendations(data.recommendations, data.strengths);
+        }
+        
+    } catch (error) {
+        console.error('Error updating display:', error);
+        showError('Error updating display: ' + error.message);
+    }
+}
+
+function updateEvaluationSummary(metrics) {
+    try {
+        const overallScoreEl = document.getElementById('overallScore');
+        const responseTimeEl = document.getElementById('responseTime');
+        const totalCostEl = document.getElementById('totalCost');
+        
+        if (overallScoreEl && metrics.overall_score !== undefined) {
+            overallScoreEl.textContent = metrics.overall_score + '%';
+        }
+        
+        if (responseTimeEl && metrics.response_time !== undefined) {
+            responseTimeEl.textContent = metrics.response_time + 's';
+        }
+        
+        if (totalCostEl && metrics.total_cost !== undefined) {
+            totalCostEl.textContent = '$' + metrics.total_cost.toFixed(3);
+        }
+        
+        // Update score colors
+        updateScoreColors();
+    } catch (error) {
+        console.error('Error updating evaluation summary:', error);
+    }
+}
+
+function updateEmailContent(type, emailData) {
+    const container = document.querySelector(`#${type}Email`);
+    if (!container || !emailData) return;
+    
+    let html = '';
+    
+    if (emailData.key_points && emailData.key_points.length > 0) {
+        html += '<h4>Key Points</h4><ul>';
+        emailData.key_points.forEach(point => {
+            html += `<li>${point}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    if (emailData.action_items && emailData.action_items.length > 0) {
+        html += '<h4>Action Items</h4><ul>';
+        emailData.action_items.forEach(item => {
+            html += `<li>${item}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    if (emailData.next_steps && emailData.next_steps.length > 0) {
+        html += '<h4>Next Steps</h4><ul>';
+        emailData.next_steps.forEach(step => {
+            html += `<li>${step}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    if (emailData.participants && emailData.participants.length > 0) {
+        html += `<div class="participants-list"><strong>Participants:</strong> ${emailData.participants.join(', ')}</div>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function updateEmailContentWithDiffs(type, emailData, differences) {
+    const container = document.querySelector(`#${type}Email`);
+    if (!container || !emailData) return;
+    
+    // Ensure differences is an array
+    differences = differences || [];
+    
+    let html = '';
+    
+    // Key Points with diff highlighting
+    if (emailData.key_points && emailData.key_points.length > 0) {
+        html += '<h4>Key Points</h4><ul>';
+        emailData.key_points.forEach(point => {
+            const diff = differences.find(d => d.section === 'key_points' && 
+                (d.content === point || d.modified === point));
+            const cssClass = diff ? getDiffClass(diff.type) : '';
+            html += `<li class="${cssClass}">${point}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    // Action Items with diff highlighting
+    if (emailData.action_items && emailData.action_items.length > 0) {
+        html += '<h4>Action Items</h4><ul>';
+        emailData.action_items.forEach(item => {
+            const diff = differences.find(d => d.section === 'action_items' && 
+                (d.content === item || d.modified === item));
+            const cssClass = diff ? getDiffClass(diff.type) : '';
+            html += `<li class="${cssClass}">${item}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    // Next Steps with diff highlighting
+    if (emailData.next_steps && emailData.next_steps.length > 0) {
+        html += '<h4>Next Steps</h4><ul>';
+        emailData.next_steps.forEach(step => {
+            const diff = differences.find(d => d.section === 'next_steps' && 
+                (d.content === step || d.modified === step));
+            const cssClass = diff ? getDiffClass(diff.type) : '';
+            html += `<li class="${cssClass}">${step}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    if (emailData.participants && emailData.participants.length > 0) {
+        html += `<div class="participants-list"><strong>Participants:</strong> ${emailData.participants.join(', ')}</div>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function getDiffClass(diffType) {
+    switch (diffType) {
+        case 'added': return 'diff-added';
+        case 'missing': return 'diff-removed';
+        case 'modified': return 'diff-highlight';
+        default: return '';
+    }
+}
+
+function updateDetailedMetrics(metrics) {
+    const metricsContainer = document.getElementById('detailedMetrics');
+    if (!metricsContainer || !metrics) return;
+    
+    const metricItems = [
+        { label: 'Content Accuracy', value: metrics.content_accuracy || 0 },
+        { label: 'Structure Match', value: metrics.structure_match || 0 },
+        { label: 'Tone Consistency', value: metrics.tone_consistency || 0 },
+        { label: 'Completeness', value: metrics.completeness || 0 },
+        { label: 'Format Compliance', value: metrics.format_compliance || 0 },
+        { label: 'Factual Precision', value: metrics.factual_precision || 0 }
+    ];
+    
+    let html = '';
+    metricItems.forEach(metric => {
+        const scoreClass = getScoreClass(metric.value);
+        html += `
+            <div class="metric-card">
+                <div class="metric-value ${scoreClass}">${metric.value}%</div>
+                <div class="metric-label">${metric.label}</div>
+            </div>
+        `;
+    });
+    
+    metricsContainer.innerHTML = html;
+}
+
+function updateRecommendations(recommendations, strengths) {
+    // Update recommendations section (this would need corresponding HTML elements)
+    console.log('Recommendations:', recommendations);
+    console.log('Strengths:', strengths);
+}
+
+function getScoreClass(score) {
+    if (score >= 90) return 'score-excellent';
+    if (score >= 75) return 'score-good';
+    if (score >= 60) return 'score-fair';
+    return 'score-poor';
+}
+
+function showError(message) {
+    document.getElementById('evaluationSummary').innerHTML = `
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            ${message}
+        </div>
+    `;
+}
+
+function restoreEvaluationSummary() {
+    // Restore the original evaluation summary HTML structure
+    document.getElementById('evaluationSummary').innerHTML = `
+        <div class="evaluation-title">
+            LLM Evaluation Results Summary
+        </div>
+        <div class="row">
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-excellent" id="overallScore">85%</div>
+                <div class="metric-label">Overall Match Score</div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-good" id="responseTime">1.2s</div>
+                <div class="metric-label">Avg Response Time</div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="metric-value score-fair" id="totalCost">$0.045</div>
+                <div class="metric-label">Total Cost</div>
+            </div>
+        </div>
+    `;
+}
+
+function exportComparison() {
+    const content = document.getElementById('emailComparison').outerHTML;
+    const fullHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Comparison Export</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        ${document.querySelector('style').innerHTML}
+    </style>
+</head>
+<body>
+    <div class="container-fluid p-4">
+        <h1>LLM Email Comparison Report</h1>
+        <p>Generated on: ${new Date().toLocaleString()}</p>
+        ${content}
+    </div>
+</body>
+</html>`;
+    
+    const blob = new Blob([fullHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `email-comparison-${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Dynamic scoring color updates
+function updateScoreColors() {
+    document.querySelectorAll('.metric-value').forEach(element => {
+        const value = parseFloat(element.textContent);
+        if (value >= 90) element.className = 'metric-value score-excellent';
+        else if (value >= 75) element.className = 'metric-value score-good';
+        else if (value >= 60) element.className = 'metric-value score-fair';
+        else element.className = 'metric-value score-poor';
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateScoreColors();
+    // Load sample data on page load
+    loadComparison();
+});
+</script>
+{% endblock %}

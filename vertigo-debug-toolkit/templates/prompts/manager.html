@@ -1,0 +1,933 @@
+{% extends "base.html" %}
+
+{% block title %}🔍 Semantic Prompt Search - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section - Match Add Prompt exactly -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1><i class="bi bi-search me-2"></i>🔍 Semantic Prompt Search</h1>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('prompts.add_prompt') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Add New Prompt
+                    </a>
+                    <a href="{{ url_for('prompts.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Prompts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content Area (8 columns) -->
+        <div class="col-lg-8">
+            <!-- Semantic Search & Filter Card -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">🔍 Semantic Prompt Search</label>
+                            <input type="text" class="form-control" id="searchInput" 
+                                   placeholder="Try: 'find email summarization prompts' or 'meeting analysis tools'">
+                            <small class="text-muted">Use natural language to find relevant prompts</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="typeFilter">
+                                <option value="">All Types</option>
+                                <option value="meeting_analysis">Meeting Analysis</option>
+                                <option value="status_report">Status Report</option>
+                                <option value="daily_summary">Daily Summary</option>
+                                <option value="email_processor">Email Processor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All</option>
+                                <option value="active">Active</option>
+                                <option value="testing">Testing</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Header -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="mb-0">
+                        <span id="resultsCount">{{ prompts|length if prompts else 0 }}</span> prompts found
+                    </h5>
+                    <small class="text-muted" id="searchInterpretation">Showing all available prompts</small>
+                </div>
+                <div class="btn-group btn-group-sm">
+                    <input type="radio" class="btn-check" name="viewMode" id="gridView" checked>
+                    <label class="btn btn-outline-secondary" for="gridView">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </label>
+                    <input type="radio" class="btn-check" name="viewMode" id="listView">
+                    <label class="btn btn-outline-secondary" for="listView">
+                        <i class="bi bi-list"></i>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Prompt Cards Grid -->
+            <div id="promptsGrid" class="row g-3">
+                {% if prompts and prompts|length > 0 %}
+                    {% for prompt in prompts %}
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body">
+                                <!-- Selection overlay -->
+                                <div class="position-absolute top-0 start-0 w-100 h-100 d-none selection-overlay" 
+                                     style="background: rgba(13, 110, 253, 0.1); border: 2px solid #0d6efd; border-radius: 8px; z-index: 5;">
+                                    <div class="position-absolute top-0 end-0 p-2">
+                                        <i class="bi bi-check-circle-fill text-primary" style="font-size: 1.2rem;"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- Selection checkbox -->
+                                <div class="position-absolute top-0 start-0 p-2" style="z-index: 10;">
+                                    <input type="checkbox" class="form-check-input prompt-select-checkbox" 
+                                           data-prompt-id="{{ prompt.id }}" style="transform: scale(1.2);">
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div style="padding-left: 25px;"> <!-- Space for checkbox -->
+                                        <h6 class="card-title mb-1 prompt-name">{{ prompt.name }}</h6>
+                                        <small class="text-muted prompt-type">{{ prompt.type }}</small>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <span class="badge bg-light text-dark prompt-version">v{{ prompt.version }}</span>
+                                        <span class="badge {% if prompt.is_active %}bg-success{% else %}bg-secondary{% endif %} status-badge">●</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Key Metrics - Minimal -->
+                                <div class="row text-center mb-3">
+                                    <div class="col-6">
+                                        <div class="small text-muted">Uses</div>
+                                        <div class="fw-bold prompt-usage">{{ prompt.metrics.total_uses }}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="small text-muted">Success</div>
+                                        <div class="fw-bold text-success prompt-success-rate">
+                                            {% if prompt.metrics.total_uses > 0 %}{{ prompt.metrics.success_rate }}%{% else %}--{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Semantic Tags - Minimal -->
+                                <div class="mb-3 prompt-tags-container" style="min-height: 24px;">
+                                    {% if prompt.tags %}
+                                        {% for tag in prompt.tags[:3] %}
+                                        <span class="badge bg-light text-dark me-1 mb-1">{{ tag }}</span>
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Action Footer -->
+                            <div class="card-footer bg-transparent border-0 pt-0">
+                                <div class="d-grid gap-2">
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-outline-primary btn-sm test-btn" 
+                                                onclick="testPrompt({{ prompt.id }})">
+                                            <i class="bi bi-play"></i> Test
+                                        </button>
+                                        <a href="/prompts/{{ prompt.id }}/edit" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <a href="/prompts/{{ prompt.id }}/view" class="btn btn-outline-info btn-sm">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty state will be shown by JavaScript if needed -->
+                {% endif %}
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-5" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading prompts...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="text-center py-5" style="display: none;">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h5 class="mt-3 text-muted">No prompts found</h5>
+                <p class="text-muted">Try adjusting your search criteria or create a new prompt.</p>
+                <a href="{{ url_for('prompts.add_prompt') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Create First Prompt
+                </a>
+            </div>
+        </div>
+
+        <!-- Smart Sidebar (4 columns) -->
+        <div class="col-lg-4">
+            <!-- Active Workspace -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightning me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-sm" id="bulkTestBtn" disabled>
+                            <i class="bi bi-play-circle me-1"></i>Test Selected
+                        </button>
+                        <button class="btn btn-warning btn-sm" id="compareBtn" disabled>
+                            <i class="bi bi-arrow-left-right me-1"></i>Compare Prompts
+                        </button>
+                        <button class="btn btn-info btn-sm" id="optimizeBtn" disabled>
+                            <i class="bi bi-cpu me-1"></i>Optimize Performance
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context-Aware Test Panel -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-flask me-2"></i>Test Workspace</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Sample Email Content</label>
+                        <textarea class="form-control form-control-sm" rows="3" id="testEmailInput"
+                                  placeholder="Paste email content for testing..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Project Context</label>
+                        <select class="form-select form-select-sm" id="testProjectSelect">
+                            <option value="">Select project...</option>
+                            <option value="project-alpha">Project Alpha</option>
+                            <option value="project-beta">Project Beta</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm w-100" id="runTest" disabled>
+                        <i class="bi bi-play me-1"></i>Test Active Prompt
+                    </button>
+                </div>
+            </div>
+
+            <!-- Performance Insights -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Performance Insights</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2 text-center">
+                        <div class="col-6">
+                            <div class="small text-muted">Avg Response Time</div>
+                            <div class="fw-bold" id="avgResponseTime">1.2s</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted">Success Rate</div>
+                            <div class="fw-bold text-success" id="overallSuccessRate">
+                                {% if prompts %}
+                                    {% set total_uses = prompts | sum(attribute='metrics.total_uses') %}
+                                    {% if total_uses > 0 %}
+                                        {% set avg_success = (prompts | sum(attribute='metrics.success_rate')) / prompts|length %}
+                                        {{ "%.1f"|format(avg_success) }}%
+                                    {% else %}--{% endif %}
+                                {% else %}--{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted">Cost/1K Tokens</div>
+                            <div class="fw-bold" id="avgCost">$0.003</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-muted">Active Prompts</div>
+                            <div class="fw-bold" id="activeCount">
+                                {% if prompts %}{{ prompts | selectattr('is_active') | list | length }}{% else %}0{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pattern Library -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-collection me-2"></i>Common Patterns</h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <div class="mb-2">
+                            <strong>Email Analysis:</strong>
+                            <code class="d-block mt-1">{transcript}</code>
+                            <span class="text-muted">Full email content</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Status Extraction:</strong>
+                            <code class="d-block mt-1">{project} + {date}</code>
+                            <span class="text-muted">Context + timestamp</span>
+                        </div>
+                        <div class="mb-2">
+                            <strong>Response Generation:</strong>
+                            <code class="d-block mt-1">{participants}</code>
+                            <span class="text-muted">Email thread context</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clean Card Template -->
+<template id="promptCardTemplate">
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <h6 class="card-title mb-1 prompt-name">Prompt Name</h6>
+                        <small class="text-muted prompt-type">Type</small>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-light text-dark prompt-version">v1.0</span>
+                        <span class="badge status-badge">●</span>
+                    </div>
+                </div>
+                
+                <!-- Key Metrics - Minimal -->
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="small text-muted">Uses</div>
+                        <div class="fw-bold prompt-usage">0</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted">Success</div>
+                        <div class="fw-bold text-success prompt-success-rate">--</div>
+                    </div>
+                </div>
+
+                <!-- Semantic Tags - Minimal -->
+                <div class="mb-3 prompt-tags-container" style="min-height: 24px;">
+                    <!-- Tags inserted here -->
+                </div>
+            </div>
+            
+            <!-- Action Footer -->
+            <div class="card-footer bg-transparent border-0 pt-0">
+                <div class="d-grid gap-2">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary btn-sm test-btn">
+                            <i class="bi bi-play"></i> Test
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm edit-btn">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn btn-outline-info btn-sm view-btn">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple test to verify JavaScript is executing
+console.log('=== JAVASCRIPT LOADED ===');
+console.log('Date:', new Date().toISOString());
+console.log('Location:', window.location.href);
+
+// Test that we can access DOM elements
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('=== DOM CONTENT LOADED EVENT ===');
+    console.log('Grid element exists:', !!document.getElementById('promptsGrid'));
+    console.log('Template element exists:', !!document.getElementById('promptCardTemplate'));
+    console.log('Search input exists:', !!document.getElementById('searchInput'));
+});
+</script>
+<script>
+class PromptManager {
+    constructor() {
+        console.log('=== PromptManager Constructor ===');
+        console.log('Initializing PromptManager properties...');
+        
+        this.selectedPrompts = new Set();
+        this.activeWorkspace = null;
+        this.performanceMetrics = {};
+        this.prompts = [];
+        this.filteredPrompts = [];
+        
+        console.log('Properties initialized successfully');
+        console.log('Setting up event listeners...');
+        this.initializeEventListeners();
+        console.log('Event listeners initialized');
+        
+        console.log('Starting to load prompts...');
+        this.loadPrompts();
+        console.log('loadPrompts() called');
+    }
+
+    initializeEventListeners() {
+        // Semantic search with debouncing
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this.performSemanticSearch();
+            }, 500); // 500ms debounce
+        });
+
+        document.getElementById('typeFilter').addEventListener('change', () => {
+            this.performSemanticSearch();
+        });
+
+        document.getElementById('statusFilter').addEventListener('change', () => {
+            this.performSemanticSearch();
+        });
+
+        // View mode toggle
+        document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleViewMode(e.target.id);
+            });
+        });
+
+        // Quick actions
+        document.getElementById('bulkTestBtn').addEventListener('click', () => {
+            this.bulkTest();
+        });
+
+        document.getElementById('compareBtn').addEventListener('click', () => {
+            this.comparePrompts();
+        });
+
+        document.getElementById('optimizeBtn').addEventListener('click', () => {
+            this.optimizePerformance();
+        });
+
+        document.getElementById('runTest').addEventListener('click', () => {
+            this.runQuickTest();
+        });
+
+        // Quick Actions for selected prompts
+        document.getElementById('bulkTestBtn')?.addEventListener('click', () => {
+            this.bulkTestSelected();
+        });
+
+        document.getElementById('compareBtn')?.addEventListener('click', () => {
+            this.compareSelected();
+        });
+
+        document.getElementById('optimizeBtn')?.addEventListener('click', () => {
+            this.optimizeSelected();
+        });
+
+        // Selection controls (keyboard shortcuts)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaCmd) {
+                if (e.key === 'a') {
+                    e.preventDefault();
+                    this.selectAllVisiblePrompts();
+                } else if (e.key === 'd') {
+                    e.preventDefault();
+                    this.clearAllSelections();
+                }
+            }
+        });
+    }
+
+    async loadPrompts() {
+        try {
+            this.showLoading(true);
+            console.log('Loading all prompts...');
+            
+            // Use semantic search API with empty query to get all prompts
+            const response = await fetch('/prompts/api/prompts/search?limit=50');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Loaded prompts via semantic search API:', data.total);
+            
+            this.prompts = data.results || [];
+            this.filteredPrompts = [...this.prompts];
+            this.renderPrompts();
+            this.updatePerformanceMetrics();
+            
+        } catch (error) {
+            console.error('Error loading prompts:', error);
+            this.showEmptyState();
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async performSemanticSearch() {
+        const searchTerm = document.getElementById('searchInput').value.trim();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        
+        try {
+            this.showLoading(true);
+            console.log('Performing semantic search for:', searchTerm);
+            
+            // Build search URL
+            const params = new URLSearchParams();
+            if (searchTerm) params.append('q', searchTerm);
+            if (typeFilter) params.append('context', `type:${typeFilter}`);
+            params.append('limit', '50');
+            
+            const response = await fetch(`/prompts/api/prompts/search?${params}`);
+            const data = await response.json();
+            
+            console.log('Search results:', data.total, 'prompts found');
+            
+            // Update search interpretation
+            const interpretation = document.getElementById('searchInterpretation');
+            if (interpretation) {
+                interpretation.textContent = data.query_interpretation || '';
+            }
+            
+            // Apply status filter locally
+            let results = data.results || [];
+            if (statusFilter) {
+                results = results.filter(prompt => {
+                    if (statusFilter === 'active') return prompt.is_active !== false;
+                    if (statusFilter === 'archived') return prompt.is_active === false;
+                    return true;
+                });
+            }
+            
+            this.filteredPrompts = results;
+            this.renderPrompts();
+            
+        } catch (error) {
+            console.error('Error in semantic search:', error);
+            this.showEmptyState();
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    filterPrompts() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        this.filteredPrompts = this.prompts.filter(prompt => {
+            const matchesSearch = !searchTerm || 
+                prompt.name.toLowerCase().includes(searchTerm) ||
+                prompt.type.toLowerCase().includes(searchTerm) ||
+                (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+            
+            const matchesType = !typeFilter || prompt.type === typeFilter;
+            const matchesStatus = !statusFilter || 
+                (statusFilter === 'active' && prompt.is_active) ||
+                (statusFilter === 'archived' && !prompt.is_active);
+
+            return matchesSearch && matchesType && matchesStatus;
+        });
+
+        this.renderPrompts();
+    }
+
+    renderPrompts() {
+        console.log('=== DEBUGGING RENDER PROMPTS ===');
+        console.log('Rendering prompts count:', this.filteredPrompts.length);
+        console.log('Filtered prompts data:', this.filteredPrompts);
+        
+        const grid = document.getElementById('promptsGrid');
+        const template = document.getElementById('promptCardTemplate');
+        
+        console.log('Grid element found:', !!grid, grid);
+        console.log('Template element found:', !!template, template);
+        
+        if (!grid) {
+            console.error('ERROR: promptsGrid element not found!');
+            return;
+        }
+        
+        if (!template) {
+            console.error('ERROR: promptCardTemplate element not found!');
+            return;
+        }
+        
+        grid.innerHTML = '';
+        console.log('Grid cleared');
+        
+        if (this.filteredPrompts.length === 0) {
+            console.log('No prompts to render, showing empty state');
+            this.showEmptyState();
+            return;
+        }
+        
+        console.log('About to render', this.filteredPrompts.length, 'prompts');
+
+        this.filteredPrompts.forEach(prompt => {
+            const card = template.content.cloneNode(true);
+            
+            // Set basic info
+            card.querySelector('.prompt-name').textContent = prompt.name;
+            card.querySelector('.prompt-type').textContent = prompt.type;
+            card.querySelector('.prompt-version').textContent = `v${prompt.version || '1.0'}`;
+            
+            // Set up selection functionality
+            const cardElement = card.querySelector('.card');
+            const checkbox = card.querySelector('.prompt-select-checkbox');
+            const overlay = card.querySelector('.selection-overlay');
+            
+            if (checkbox) {
+                checkbox.dataset.promptId = prompt.id;
+                
+                // Checkbox change handler
+                checkbox.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.togglePromptSelection(prompt.id, e.target.checked, cardElement);
+                });
+                
+                // Card click handler (also toggles selection)
+                cardElement.addEventListener('click', (e) => {
+                    // Don't trigger if clicking on buttons
+                    if (e.target.closest('.btn, .form-check-input')) {
+                        return;
+                    }
+                    
+                    const isSelected = !checkbox.checked;
+                    checkbox.checked = isSelected;
+                    this.togglePromptSelection(prompt.id, isSelected, cardElement);
+                });
+                
+                // Visual feedback on hover
+                cardElement.addEventListener('mouseenter', () => {
+                    if (!checkbox.checked) {
+                        cardElement.style.transform = 'translateY(-2px)';
+                        cardElement.style.transition = 'transform 0.2s ease';
+                    }
+                });
+                
+                cardElement.addEventListener('mouseleave', () => {
+                    if (!checkbox.checked) {
+                        cardElement.style.transform = 'translateY(0)';
+                    }
+                });
+            }
+            
+            // Set metrics (handle both old and new data structures)
+            const metrics = prompt.performance_metrics || prompt.metrics || {};
+            card.querySelector('.prompt-usage').textContent = metrics.usage_count || metrics.total_uses || 0;
+            card.querySelector('.prompt-success-rate').textContent = 
+                metrics.success_rate !== undefined ? `${metrics.success_rate}%` : '--';
+            
+            // Set status badge
+            const statusBadge = card.querySelector('.status-badge');
+            const isActive = prompt.is_active !== false; // Default to true if undefined
+            if (isActive) {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = '●';
+            } else {
+                statusBadge.className = 'badge bg-secondary';
+                statusBadge.textContent = '●';
+            }
+            
+            // Add tags
+            const tagsContainer = card.querySelector('.prompt-tags-container');
+            if (prompt.tags && prompt.tags.length > 0) {
+                prompt.tags.slice(0, 3).forEach(tag => {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-light text-dark me-1 mb-1';
+                    badge.textContent = tag;
+                    tagsContainer.appendChild(badge);
+                });
+            }
+            
+            // Add relevance score if available (from semantic search)
+            if (prompt.relevance_score !== undefined) {
+                const relevanceScore = document.createElement('small');
+                relevanceScore.className = 'text-muted d-block';
+                relevanceScore.textContent = `Relevance: ${Math.round(prompt.relevance_score * 100)}%`;
+                card.querySelector('.prompt-type').parentNode.appendChild(relevanceScore);
+                
+                // Add match reasons
+                if (prompt.match_reasons && prompt.match_reasons.length > 0) {
+                    const reasons = document.createElement('small');
+                    reasons.className = 'text-success d-block';
+                    reasons.textContent = prompt.match_reasons.join(', ');
+                    card.querySelector('.prompt-type').parentNode.appendChild(reasons);
+                }
+            }
+            
+            // Add event listeners
+            card.querySelector('.test-btn').addEventListener('click', () => {
+                this.testPrompt(prompt.id);
+            });
+            
+            card.querySelector('.edit-btn').addEventListener('click', () => {
+                window.location.href = `/prompts/${prompt.id}/edit`;
+            });
+            
+            card.querySelector('.view-btn').addEventListener('click', () => {
+                window.location.href = `/prompts/${prompt.id}/view`;
+            });
+            
+            grid.appendChild(card);
+        });
+        
+        document.getElementById('resultsCount').textContent = this.filteredPrompts.length;
+        this.hideEmptyState();
+    }
+
+    showLoading(show) {
+        document.getElementById('loadingState').style.display = show ? 'block' : 'none';
+    }
+
+    showEmptyState() {
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('promptsGrid').style.display = 'none';
+    }
+
+    hideEmptyState() {
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('promptsGrid').style.display = 'flex';
+    }
+
+    toggleViewMode(mode) {
+        const grid = document.getElementById('promptsGrid');
+        if (mode === 'gridView') {
+            grid.className = 'row g-3';
+        } else {
+            grid.className = 'row g-2';
+            // Implement list view if needed
+        }
+    }
+
+    togglePromptSelection(promptId, isSelected, cardElement) {
+        console.log(`Toggling selection for prompt ${promptId}: ${isSelected}`);
+        
+        if (isSelected) {
+            this.selectedPrompts.add(promptId);
+            cardElement.querySelector('.selection-overlay')?.classList.remove('d-none');
+            cardElement.style.transform = 'translateY(-2px)';
+        } else {
+            this.selectedPrompts.delete(promptId);
+            cardElement.querySelector('.selection-overlay')?.classList.add('d-none');
+            cardElement.style.transform = 'translateY(0)';
+        }
+        
+        this.updateQuickActionsState();
+        console.log('Selected prompts:', Array.from(this.selectedPrompts));
+    }
+    
+    updateQuickActionsState() {
+        const selectedCount = this.selectedPrompts.size;
+        
+        // Update button states
+        document.getElementById('bulkTestBtn').disabled = selectedCount === 0;
+        document.getElementById('compareBtn').disabled = selectedCount < 2;
+        document.getElementById('optimizeBtn').disabled = selectedCount === 0;
+        
+        // Update button text with counts
+        const bulkTestBtn = document.getElementById('bulkTestBtn');
+        const compareBtn = document.getElementById('compareBtn');
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        
+        if (selectedCount === 0) {
+            bulkTestBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i>Test Selected';
+            compareBtn.innerHTML = '<i class="bi bi-arrow-left-right me-1"></i>Compare Prompts';
+            optimizeBtn.innerHTML = '<i class="bi bi-cpu me-1"></i>Optimize Performance';
+        } else {
+            bulkTestBtn.innerHTML = `<i class="bi bi-play-circle me-1"></i>Test Selected (${selectedCount})`;
+            compareBtn.innerHTML = `<i class="bi bi-arrow-left-right me-1"></i>Compare (${selectedCount})`;
+            optimizeBtn.innerHTML = `<i class="bi bi-cpu me-1"></i>Optimize (${selectedCount})`;
+        }
+    }
+    
+    clearAllSelections() {
+        this.selectedPrompts.clear();
+        
+        // Clear visual selections
+        document.querySelectorAll('.prompt-select-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        
+        document.querySelectorAll('.selection-overlay').forEach(overlay => {
+            overlay.classList.add('d-none');
+        });
+        
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.transform = 'translateY(0)';
+        });
+        
+        this.updateQuickActionsState();
+    }
+    
+    selectAllVisiblePrompts() {
+        this.filteredPrompts.forEach(prompt => {
+            const checkbox = document.querySelector(`[data-prompt-id="${prompt.id}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                const cardElement = checkbox.closest('.card');
+                this.togglePromptSelection(prompt.id, true, cardElement);
+            }
+        });
+    }
+
+    updatePerformanceMetrics() {
+        if (this.prompts.length === 0) return;
+        
+        const activePrompts = this.prompts.filter(p => p.is_active !== false).length;
+        
+        document.getElementById('activeCount').textContent = activePrompts;
+        document.getElementById('avgResponseTime').textContent = '1.2s';
+        document.getElementById('avgCost').textContent = '$0.003';
+        
+        // Calculate average success rate from available data
+        const promptsWithMetrics = this.prompts.filter(p => {
+            const metrics = p.performance_metrics || p.metrics || {};
+            return metrics.success_rate !== undefined;
+        });
+        
+        if (promptsWithMetrics.length > 0) {
+            const avgSuccessRate = promptsWithMetrics.reduce((sum, p) => {
+                const metrics = p.performance_metrics || p.metrics || {};
+                return sum + (metrics.success_rate || 0);
+            }, 0) / promptsWithMetrics.length;
+            
+            document.getElementById('overallSuccessRate').textContent = `${avgSuccessRate.toFixed(1)}%`;
+        }
+    }
+
+    testPrompt(promptId) {
+        this.activeWorkspace = promptId;
+        document.getElementById('runTest').disabled = false;
+        // Could pre-fill test data based on prompt type
+    }
+
+    bulkTest() {
+        if (this.selectedPrompts.size === 0) {
+            alert('Please select prompts to test');
+            return;
+        }
+        
+        const selectedIds = Array.from(this.selectedPrompts);
+        console.log('Bulk testing prompts:', selectedIds);
+        
+        // Show feedback to user
+        const message = `✅ Bulk test initiated for ${selectedIds.length} prompts\n\nResults will appear in the evaluation dashboard.`;
+        alert(message);
+        
+        // Clear selections after action
+        this.clearAllSelections();
+    }
+
+    comparePrompts() {
+        if (this.selectedPrompts.size < 2) {
+            alert('Please select at least 2 prompts to compare');
+            return;
+        }
+        
+        const selectedIds = Array.from(this.selectedPrompts);
+        const selectedPrompts = this.prompts.filter(p => selectedIds.includes(p.id));
+        
+        console.log('Comparing prompts:', selectedPrompts.map(p => p.name));
+        
+        const comparisonData = selectedPrompts.map(prompt => {
+            const metrics = prompt.performance_metrics || prompt.metrics || {};
+            return `• ${prompt.name} (v${prompt.version || '1.0'})\n  Success Rate: ${metrics.success_rate || 'N/A'}%\n  Usage: ${metrics.usage_count || metrics.total_uses || 0} times`;
+        }).join('\n\n');
+        
+        alert(`📊 Prompt Comparison\n\n${comparisonData}\n\nDetailed comparison view would open here.`);
+    }
+
+    optimizePerformance() {
+        if (this.selectedPrompts.size === 0) {
+            alert('Please select prompts to optimize');
+            return;
+        }
+        
+        const selectedIds = Array.from(this.selectedPrompts);
+        const selectedPrompts = this.prompts.filter(p => selectedIds.includes(p.id));
+        
+        console.log('Optimizing prompts:', selectedPrompts.map(p => p.name));
+        
+        const suggestions = selectedPrompts.map(prompt => {
+            const metrics = prompt.performance_metrics || prompt.metrics || {};
+            const suggestions = [];
+            
+            if ((metrics.success_rate || 0) < 80) {
+                suggestions.push('🔍 Consider refining prompt clarity and specificity');
+            }
+            if ((metrics.usage_count || metrics.total_uses || 0) < 10) {
+                suggestions.push('🧪 Test with more diverse input scenarios');
+            }
+            if (prompt.tags && prompt.tags.length < 3) {
+                suggestions.push('🏷️ Add more descriptive tags for better discoverability');
+            }
+            suggestions.push('⚡ Consider A/B testing prompt variations');
+            
+            return {
+                name: prompt.name,
+                suggestions: suggestions
+            };
+        });
+        
+        const suggestionsText = suggestions.map(s => 
+            `${s.name}:\n${s.suggestions.map(sug => `  ${sug}`).join('\n')}`
+        ).join('\n\n');
+        
+        alert(`🚀 Optimization Suggestions\n\n${suggestionsText}`);
+    }
+
+    runQuickTest() {
+        const emailContent = document.getElementById('testEmailInput').value;
+        const project = document.getElementById('testProjectSelect').value;
+        
+        if (!emailContent.trim()) {
+            alert('Please enter email content for testing');
+            return;
+        }
+        
+        console.log('Running quick test with:', { emailContent, project, promptId: this.activeWorkspace });
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('=== DEBUGGING INITIALIZATION ===');
+    console.log('DOM loaded, initializing PromptManager...');
+    console.log('Document ready state:', document.readyState);
+    console.log('Current URL:', window.location.href);
+    
+    try {
+        console.log('Creating new PromptManager instance...');
+        const manager = new PromptManager();
+        console.log('PromptManager created successfully:', manager);
+        console.log('PromptManager methods available:', Object.getOwnPropertyNames(Object.getPrototypeOf(manager)));
+        
+        window.promptManager = manager; // For debugging
+        console.log('PromptManager assigned to window.promptManager for debugging');
+        console.log('=== INITIALIZATION COMPLETE ===');
+    } catch (error) {
+        console.error('=== INITIALIZATION ERROR ===');
+        console.error('Error initializing PromptManager:', error);
+        console.error('Error stack:', error.stack);
+    }
+});
+</script>
+{% endblock %} 

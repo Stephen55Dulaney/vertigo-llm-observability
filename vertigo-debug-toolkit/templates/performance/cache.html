@@ -1,0 +1,958 @@
+{% extends "base.html" %}
+
+{% block title %}Cache Performance - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>⚡ Cache Performance</h1>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary" onclick="refreshCacheStats()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                    </button>
+                    <button class="btn btn-success" onclick="optimizeCache()">
+                        <i class="bi bi-gear me-2"></i>Auto Optimize
+                    </button>
+                    <button class="btn btn-info" onclick="runBenchmark()">
+                        <i class="bi bi-stopwatch me-2"></i>Benchmark
+                    </button>
+                </div>
+            </div>
+            <p class="lead">Advanced caching performance monitoring and optimization for maximum system efficiency.</p>
+        </div>
+    </div>
+    
+    <!-- Cache Performance Overview -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="hit-ratio">-</h4>
+                            <p class="mb-0">Hit Ratio</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-bullseye fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="hit-ratio-trend" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="total-operations">-</h4>
+                            <p class="mb-0">Total Operations</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-activity fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="avg-operation-time" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="memory-utilization">-</h4>
+                            <p class="mb-0">Memory Usage</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-memory fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="memory-details" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="redis-status">-</h4>
+                            <p class="mb-0">Redis Status</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-database fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="redis-details" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cache Performance Charts -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Performance Metrics</h5>
+                    <div class="d-flex gap-2">
+                        <select id="metric-selector" class="form-select form-select-sm">
+                            <option value="hit_ratio">Hit Ratio</option>
+                            <option value="operations">Operations</option>
+                            <option value="response_time">Response Time</option>
+                            <option value="memory_usage">Memory Usage</option>
+                        </select>
+                        <button class="btn btn-outline-primary btn-sm" onclick="exportChartData()">
+                            <i class="bi bi-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="performanceChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Cache Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form id="cacheConfigForm">
+                        <div class="mb-3">
+                            <label for="defaultTTL" class="form-label">Default TTL (seconds)</label>
+                            <input type="number" class="form-control" id="defaultTTL" min="60" max="86400">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxMemoryItems" class="form-label">Max Memory Items</label>
+                            <input type="number" class="form-control" id="maxMemoryItems" min="100" max="10000">
+                        </div>
+                        <div class="mb-3">
+                            <label for="maxMemorySize" class="form-label">Max Memory Size (MB)</label>
+                            <input type="number" class="form-control" id="maxMemorySize" min="10" max="1000" step="0.1">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="compressionEnabled">
+                            <label class="form-check-label" for="compressionEnabled">
+                                Enable Compression
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="updateCacheConfig()">
+                            <i class="bi bi-check-circle me-2"></i>Update Configuration
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cache Management Tools -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Cache Management</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info" onclick="getCacheKeys()">
+                            <i class="bi bi-list"></i> Keys
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="clearCache()">
+                            <i class="bi bi-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="cacheKey" class="form-label">Cache Key</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="cacheKey" placeholder="Enter cache key">
+                            <button class="btn btn-outline-secondary" type="button" onclick="getCacheItem()">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="cachePattern" class="form-label">Clear Pattern</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="cachePattern" placeholder="*analytics* or specific pattern" value="*">
+                            <button class="btn btn-outline-warning" type="button" onclick="clearCachePattern()">
+                                <i class="bi bi-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="invalidateTag" class="form-label">Invalidate by Tag</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="invalidateTag" placeholder="Enter tag name">
+                            <button class="btn btn-outline-danger" type="button" onclick="invalidateCacheTag()">
+                                <i class="bi bi-x-circle"></i> Invalidate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Cache Operations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="setKey" class="form-label">Set Cache Item</label>
+                        <input type="text" class="form-control mb-2" id="setKey" placeholder="Key">
+                        <textarea class="form-control mb-2" id="setValue" rows="3" placeholder="Value (JSON or string)"></textarea>
+                        <div class="row">
+                            <div class="col-8">
+                                <input type="number" class="form-control" id="setTTL" placeholder="TTL (seconds)" min="60">
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-success w-100" onclick="setCacheItem()">
+                                    <i class="bi bi-plus"></i> Set
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="cacheOperationResult" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cache Keys and Data Explorer -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Cache Data Explorer</h5>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" id="keySearch" placeholder="Search keys...">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchKeys()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="cacheKeysContainer">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-search fa-3x mb-3"></i>
+                            <p>Use the search above to explore cache keys, or click "Keys" in Cache Management.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Benchmark Results Modal -->
+    <div class="modal fade" id="benchmarkModal" tabindex="-1" aria-labelledby="benchmarkModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="benchmarkModalLabel">Cache Performance Benchmark</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="benchmarkResults">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Running benchmark...</span>
+                            </div>
+                            <p class="mt-2">Running performance benchmark...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="exportBenchmarkResults()">
+                        <i class="bi bi-download me-2"></i>Export Results
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let performanceChart = null;
+    let currentBenchmarkResults = null;
+    
+    // Initialize performance chart
+    const chartCtx = document.getElementById('performanceChart').getContext('2d');
+    const chartConfig = {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Hit Ratio %',
+                data: [],
+                borderColor: '#007bff',
+                backgroundColor: '#007bff20',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Percentage'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    };
+    
+    performanceChart = new Chart(chartCtx, chartConfig);
+    
+    // Load initial data
+    refreshCacheStats();
+    loadCacheConfig();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshCacheStats, 30000);
+});
+
+async function refreshCacheStats() {
+    try {
+        const response = await fetch('/performance/api/cache/stats');
+        const result = await response.json();
+        
+        if (result.success) {
+            const stats = result.stats;
+            
+            // Update overview cards
+            const hitRatio = (stats.performance.hit_ratio * 100).toFixed(1);
+            document.getElementById('hit-ratio').textContent = `${hitRatio}%`;
+            document.getElementById('hit-ratio-trend').textContent = 
+                `${stats.performance.hits} hits / ${stats.performance.misses} misses`;
+            
+            document.getElementById('total-operations').textContent = stats.performance.operations.toLocaleString();
+            document.getElementById('avg-operation-time').textContent = 
+                `Avg: ${stats.performance.avg_operation_time_ms.toFixed(2)}ms`;
+            
+            const memoryUtil = (stats.memory_cache.utilization * 100).toFixed(1);
+            document.getElementById('memory-utilization').textContent = `${memoryUtil}%`;
+            document.getElementById('memory-details').textContent = 
+                `${stats.memory_cache.items}/${stats.memory_cache.max_items} items`;
+            
+            // Redis status
+            if (stats.redis_cache && stats.redis_cache.connected) {
+                document.getElementById('redis-status').textContent = 'Connected';
+                document.getElementById('redis-details').textContent = stats.redis_cache.used_memory_human || '0B';
+            } else {
+                document.getElementById('redis-status').textContent = 'Offline';
+                document.getElementById('redis-details').textContent = 'Memory cache only';
+            }
+            
+        } else {
+            console.error('Error fetching cache stats:', result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error refreshing cache stats:', error);
+    }
+}
+
+async function loadCacheConfig() {
+    try {
+        const response = await fetch('/performance/api/cache/config');
+        const result = await response.json();
+        
+        if (result.success) {
+            const config = result.config;
+            document.getElementById('defaultTTL').value = config.default_ttl_seconds;
+            document.getElementById('maxMemoryItems').value = config.max_memory_items;
+            document.getElementById('maxMemorySize').value = config.max_memory_size_mb;
+            document.getElementById('compressionEnabled').checked = config.compression_enabled;
+        }
+        
+    } catch (error) {
+        console.error('Error loading cache config:', error);
+    }
+}
+
+async function updateCacheConfig() {
+    try {
+        const config = {
+            default_ttl_seconds: parseInt(document.getElementById('defaultTTL').value),
+            max_memory_items: parseInt(document.getElementById('maxMemoryItems').value),
+            max_memory_size_mb: parseFloat(document.getElementById('maxMemorySize').value),
+            compression_enabled: document.getElementById('compressionEnabled').checked
+        };
+        
+        const response = await fetch('/performance/api/cache/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', 'Cache configuration updated successfully');
+            refreshCacheStats();
+        } else {
+            showAlert('danger', 'Error updating cache configuration: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error updating cache config:', error);
+        showAlert('danger', 'Error updating cache configuration');
+    }
+}
+
+async function optimizeCache() {
+    try {
+        const response = await fetch('/performance/api/cache/optimize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            let message = `Applied ${result.optimizations_applied.length} optimizations:\n`;
+            result.optimizations_applied.forEach(opt => {
+                message += `• ${opt}\n`;
+            });
+            
+            showAlert('success', message);
+            refreshCacheStats();
+            loadCacheConfig();
+        } else {
+            showAlert('danger', 'Error optimizing cache: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error optimizing cache:', error);
+        showAlert('danger', 'Error optimizing cache');
+    }
+}
+
+async function runBenchmark() {
+    try {
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('benchmarkModal'));
+        modal.show();
+        
+        // Reset results
+        document.getElementById('benchmarkResults').innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Running benchmark...</span>
+                </div>
+                <p class="mt-2">Running performance benchmark...</p>
+            </div>
+        `;
+        
+        const response = await fetch('/performance/api/cache/benchmark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ iterations: 1000 })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            currentBenchmarkResults = result.benchmark_results;
+            displayBenchmarkResults(result);
+        } else {
+            document.getElementById('benchmarkResults').innerHTML = `
+                <div class="alert alert-danger">
+                    Error running benchmark: ${result.error}
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error running benchmark:', error);
+        document.getElementById('benchmarkResults').innerHTML = `
+            <div class="alert alert-danger">
+                Error running benchmark: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displayBenchmarkResults(result) {
+    const summary = result.summary;
+    
+    let html = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Performance Summary</h6>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Total Operations:</strong></td>
+                                <td>${summary.total_operations.toLocaleString()}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Avg Set Time:</strong></td>
+                                <td>${summary.avg_set_time_ms.toFixed(3)} ms</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Avg Get Time (Hit):</strong></td>
+                                <td>${summary.avg_hit_time_ms.toFixed(3)} ms</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Avg Get Time (Miss):</strong></td>
+                                <td>${summary.avg_miss_time_ms.toFixed(3)} ms</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Set Ops/Second:</strong></td>
+                                <td>${summary.set_ops_per_second.toFixed(0)}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Get Ops/Second:</strong></td>
+                                <td>${summary.get_ops_per_second.toFixed(0)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Performance Analysis</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>Cache Performance:</strong>
+                            <div class="progress mt-1" style="height: 20px;">
+                                <div class="progress-bar ${getPerformanceColor(summary.get_ops_per_second)}" 
+                                     style="width: ${Math.min(summary.get_ops_per_second / 10000 * 100, 100)}%">
+                                    ${summary.get_ops_per_second.toFixed(0)} ops/s
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Response Time:</strong>
+                            <div class="text-${getLatencyColor(summary.avg_hit_time_ms)}">
+                                ${getLatencyDescription(summary.avg_hit_time_ms)}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Recommendations:</strong>
+                            <ul class="list-unstyled">
+                                ${getBenchmarkRecommendations(summary).map(rec => `<li>• ${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('benchmarkResults').innerHTML = html;
+}
+
+function getPerformanceColor(opsPerSecond) {
+    if (opsPerSecond > 5000) return 'bg-success';
+    if (opsPerSecond > 1000) return 'bg-warning';
+    return 'bg-danger';
+}
+
+function getLatencyColor(latencyMs) {
+    if (latencyMs < 1) return 'success';
+    if (latencyMs < 10) return 'warning';
+    return 'danger';
+}
+
+function getLatencyDescription(latencyMs) {
+    if (latencyMs < 0.1) return 'Excellent (< 0.1ms)';
+    if (latencyMs < 1) return 'Very Good (< 1ms)';
+    if (latencyMs < 10) return 'Good (< 10ms)';
+    return 'Needs Optimization (> 10ms)';
+}
+
+function getBenchmarkRecommendations(summary) {
+    const recommendations = [];
+    
+    if (summary.avg_hit_time_ms > 10) {
+        recommendations.push('Consider enabling Redis for better performance');
+    }
+    if (summary.set_ops_per_second < 1000) {
+        recommendations.push('Increase memory cache size for better write performance');
+    }
+    if (summary.avg_set_time_ms > 5) {
+        recommendations.push('Enable compression for large values');
+    }
+    if (recommendations.length === 0) {
+        recommendations.push('Cache performance is optimal');
+    }
+    
+    return recommendations;
+}
+
+async function getCacheKeys() {
+    try {
+        const pattern = document.getElementById('keySearch').value || '*';
+        const response = await fetch(`/performance/api/cache/keys?pattern=${encodeURIComponent(pattern)}&limit=50`);
+        const result = await response.json();
+        
+        if (result.success) {
+            displayCacheKeys(result);
+        } else {
+            showAlert('danger', 'Error fetching cache keys: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error fetching cache keys:', error);
+        showAlert('danger', 'Error fetching cache keys');
+    }
+}
+
+function displayCacheKeys(result) {
+    let html = '<div class="row">';
+    
+    if (result.memory_keys.length > 0) {
+        html += `
+            <div class="col-md-6">
+                <h6>Memory Cache Keys (${result.memory_keys.length})</h6>
+                <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+        `;
+        
+        result.memory_keys.forEach(key => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate">${key}</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info btn-sm" onclick="getCacheItem('${key}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteCacheItem('${key}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+    }
+    
+    if (result.redis_keys.length > 0) {
+        html += `
+            <div class="col-md-6">
+                <h6>Redis Cache Keys (${result.redis_keys.length})</h6>
+                <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+        `;
+        
+        result.redis_keys.forEach(key => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate">${key}</span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-info btn-sm" onclick="getCacheItem('${key}')">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteCacheItem('${key}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div></div>';
+    }
+    
+    html += '</div>';
+    
+    if (result.memory_keys.length === 0 && result.redis_keys.length === 0) {
+        html = '<div class="text-center text-muted"><p>No cache keys found matching the pattern.</p></div>';
+    }
+    
+    document.getElementById('cacheKeysContainer').innerHTML = html;
+}
+
+async function getCacheItem(key = null) {
+    try {
+        const keyToGet = key || document.getElementById('cacheKey').value;
+        if (!keyToGet) {
+            showAlert('warning', 'Please enter a cache key');
+            return;
+        }
+        
+        const response = await fetch(`/performance/api/cache/get/${encodeURIComponent(keyToGet)}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            let message = `Key: ${result.key}\n`;
+            message += `Found: ${result.found}\n`;
+            if (result.found) {
+                message += `Value: ${JSON.stringify(result.value, null, 2)}`;
+            }
+            
+            document.getElementById('cacheOperationResult').innerHTML = `
+                <div class="alert alert-info">
+                    <strong>Cache Item:</strong>
+                    <pre class="mb-0 mt-2">${message}</pre>
+                </div>
+            `;
+        } else {
+            showAlert('danger', 'Error getting cache item: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error getting cache item:', error);
+        showAlert('danger', 'Error getting cache item');
+    }
+}
+
+async function setCacheItem() {
+    try {
+        const key = document.getElementById('setKey').value;
+        const value = document.getElementById('setValue').value;
+        const ttl = document.getElementById('setTTL').value;
+        
+        if (!key || !value) {
+            showAlert('warning', 'Please enter both key and value');
+            return;
+        }
+        
+        let parsedValue;
+        try {
+            parsedValue = JSON.parse(value);
+        } catch {
+            parsedValue = value; // Use as string if not valid JSON
+        }
+        
+        const data = {
+            key: key,
+            value: parsedValue
+        };
+        
+        if (ttl) {
+            data.ttl_seconds = parseInt(ttl);
+        }
+        
+        const response = await fetch('/performance/api/cache/set', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            document.getElementById('setKey').value = '';
+            document.getElementById('setValue').value = '';
+            document.getElementById('setTTL').value = '';
+        } else {
+            showAlert('danger', 'Error setting cache item: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error setting cache item:', error);
+        showAlert('danger', 'Error setting cache item');
+    }
+}
+
+async function clearCache() {
+    if (!confirm('Are you sure you want to clear the entire cache?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/performance/api/cache/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', 'Cache cleared successfully');
+            refreshCacheStats();
+        } else {
+            showAlert('danger', 'Error clearing cache: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error clearing cache:', error);
+        showAlert('danger', 'Error clearing cache');
+    }
+}
+
+async function clearCachePattern() {
+    const pattern = document.getElementById('cachePattern').value;
+    if (!pattern) {
+        showAlert('warning', 'Please enter a pattern');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to clear all cache items matching pattern: ${pattern}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/performance/api/cache/clear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pattern: pattern })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            refreshCacheStats();
+        } else {
+            showAlert('danger', 'Error clearing cache: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error clearing cache pattern:', error);
+        showAlert('danger', 'Error clearing cache pattern');
+    }
+}
+
+async function invalidateCacheTag() {
+    const tag = document.getElementById('invalidateTag').value;
+    if (!tag) {
+        showAlert('warning', 'Please enter a tag name');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/performance/api/cache/invalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag: tag })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            refreshCacheStats();
+        } else {
+            showAlert('danger', 'Error invalidating cache tag: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error invalidating cache tag:', error);
+        showAlert('danger', 'Error invalidating cache tag');
+    }
+}
+
+async function deleteCacheItem(key) {
+    if (!confirm(`Are you sure you want to delete cache key: ${key}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/performance/api/cache/delete/${encodeURIComponent(key)}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert('success', result.message);
+            getCacheKeys(); // Refresh the keys list
+            refreshCacheStats();
+        } else {
+            showAlert('danger', 'Error deleting cache item: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error deleting cache item:', error);
+        showAlert('danger', 'Error deleting cache item');
+    }
+}
+
+function searchKeys() {
+    getCacheKeys();
+}
+
+function exportBenchmarkResults() {
+    if (!currentBenchmarkResults) {
+        showAlert('warning', 'No benchmark results to export');
+        return;
+    }
+    
+    const data = JSON.stringify(currentBenchmarkResults, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cache-benchmark-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function exportChartData() {
+    // Export chart data functionality
+    showAlert('info', 'Chart export feature coming soon');
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at the top of the container
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

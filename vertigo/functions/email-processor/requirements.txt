@@ -1,0 +1,8 @@
+google-cloud-secret-manager
+google-auth
+google-auth-oauthlib
+google-api-python-client
+functions-framework
+requests
+google-cloud-firestore
+langfuse

@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Alert Management - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1><i class="fas fa-bell text-warning"></i> Alert Management</h1>
+                    <p class="text-muted">Monitor system health and receive notifications for critical issues</p>
+                </div>
+                {% if current_user.is_admin %}
+                <div>
+                    <a href="{{ url_for('alerts.create_rule') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create Alert Rule
+                    </a>
+                    <a href="{{ url_for('alerts.settings') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.total_rules }}</h4>
+                            <small>Total Rules</small>
+                        </div>
+                        <i class="fas fa-list-ul fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.active_rules }}</h4>
+                            <small>Active Rules</small>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.active_alerts }}</h4>
+                            <small>Active Alerts</small>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ stats.triggered_today }}</h4>
+                            <small>Triggered Today</small>
+                        </div>
+                        <i class="fas fa-calendar-day fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-3" id="alertTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="rules-tab" data-toggle="tab" href="#rules" role="tab">
+                <i class="fas fa-cog"></i> Alert Rules
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="events-tab" data-toggle="tab" href="#events" role="tab">
+                <i class="fas fa-history"></i> Recent Events
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="alertTabsContent">
+        <!-- Alert Rules Tab -->
+        <div class="tab-pane fade show active" id="rules" role="tabpanel">
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="GET" class="row align-items-end">
+                        <div class="col-md-3">
+                            <label for="type" class="form-label">Alert Type</label>
+                            <select name="type" id="type" class="form-control">
+                                <option value="">All Types</option>
+                                <option value="error_rate" {% if current_filters.type == 'error_rate' %}selected{% endif %}>Error Rate</option>
+                                <option value="latency_avg" {% if current_filters.type == 'latency_avg' %}selected{% endif %}>Avg Latency</option>
+                                <option value="cost_threshold" {% if current_filters.type == 'cost_threshold' %}selected{% endif %}>Cost Threshold</option>
+                                <option value="trace_volume" {% if current_filters.type == 'trace_volume' %}selected{% endif %}>Trace Volume</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-control">
+                                <option value="">All Status</option>
+                                <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="severity" class="form-label">Severity</label>
+                            <select name="severity" id="severity" class="form-control">
+                                <option value="">All Severities</option>
+                                <option value="low" {% if current_filters.severity == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if current_filters.severity == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if current_filters.severity == 'high' %}selected{% endif %}>High</option>
+                                <option value="critical" {% if current_filters.severity == 'critical' %}selected{% endif %}>Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                            <a href="{{ url_for('alerts.index') }}" class="btn btn-outline-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Alert Rules Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Alert Rules</h5>
+                </div>
+                <div class="card-body">
+                    {% if rules %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Threshold</th>
+                                    <th>Severity</th>
+                                    <th>Status</th>
+                                    <th>Last Triggered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rule in rules %}
+                                <tr class="{% if not rule.is_active %}text-muted{% endif %}">
+                                    <td>
+                                        <strong>{{ rule.name }}</strong>
+                                        {% if rule.data_source %}
+                                        <br><small class="text-muted">{{ rule.data_source.name }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary">{{ rule.alert_type }}</span>
+                                    </td>
+                                    <td>
+                                        {{ rule.comparison_operator }} {{ rule.threshold_value }}
+                                        <br><small class="text-muted">{{ rule.time_window_minutes }}min window</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if rule.severity == 'low' %}badge-success
+                                            {% elif rule.severity == 'medium' %}badge-warning
+                                            {% elif rule.severity == 'high' %}badge-danger
+                                            {% else %}badge-dark{% endif %}">
+                                            {{ rule.severity|upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if rule.is_active %}
+                                        <span class="badge badge-success">Active</span>
+                                        {% else %}
+                                        <span class="badge badge-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if rule.last_triggered %}
+                                        {{ rule.last_triggered.strftime('%Y-%m-%d %H:%M') }}
+                                        <br><small class="text-muted">{{ rule.trigger_count or 0 }} times</small>
+                                        {% else %}
+                                        <span class="text-muted">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('alerts.view_rule', rule_id=rule.id) }}" 
+                                               class="btn btn-outline-info" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if current_user.is_admin %}
+                                            <a href="{{ url_for('alerts.edit_rule', rule_id=rule.id) }}" 
+                                               class="btn btn-outline-warning" title="Edit Rule">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button class="btn btn-outline-{% if rule.is_active %}secondary{% else %}success{% endif %}" 
+                                                    onclick="toggleRule({{ rule.id }})" 
+                                                    title="{% if rule.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                                <i class="fas fa-{% if rule.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if pagination.pages > 1 %}
+                    <nav aria-label="Alert rules pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if pagination.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('alerts.index', page=pagination.prev_num, **current_filters) }}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in pagination.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != pagination.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('alerts.index', page=page_num, **current_filters) }}">{{ page_num }}</a>
+                                    </li>
+                                    {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('alerts.index', page=pagination.next_num, **current_filters) }}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                        <h4>No Alert Rules</h4>
+                        <p class="text-muted">Create your first alert rule to start monitoring system health.</p>
+                        {% if current_user.is_admin %}
+                        <a href="{{ url_for('alerts.create_rule') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Alert Rule
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Events Tab -->
+        <div class="tab-pane fade" id="events" role="tabpanel">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history"></i> Recent Alert Events</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_events %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Rule</th>
+                                    <th>Message</th>
+                                    <th>Severity</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in recent_events %}
+                                <tr>
+                                    <td>
+                                        <small>{{ event.triggered_at.strftime('%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('alerts.view_rule', rule_id=event.rule_id) }}" class="text-decoration-none">
+                                            {{ event.alert_rule.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <small>{{ event.message[:100] }}{% if event.message|length > 100 %}...{% endif %}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm 
+                                            {% if event.severity == 'low' %}badge-success
+                                            {% elif event.severity == 'medium' %}badge-warning
+                                            {% elif event.severity == 'high' %}badge-danger
+                                            {% else %}badge-dark{% endif %}">
+                                            {{ event.severity }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm 
+                                            {% if event.status == 'active' %}badge-warning
+                                            {% elif event.status == 'resolved' %}badge-success
+                                            {% elif event.status == 'acknowledged' %}badge-info
+                                            {% else %}badge-secondary{% endif %}">
+                                            {{ event.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <a href="{{ url_for('alerts.events') }}" class="btn btn-outline-primary btn-sm">
+                            View All Events <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No recent alert events</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleRule(ruleId) {
+    fetch(`/alerts/rule/${ruleId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error toggling rule status');
+    });
+}
+</script>
+{% endblock %}

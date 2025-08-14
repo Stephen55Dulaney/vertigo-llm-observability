@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Manager API</title>
+</head>
+<body>
+    <div id="results"></div>
+
+    <script>
+    // Test the manager API directly
+    console.log('Testing manager API...');
+    
+    fetch('/prompts/api/prompts/list')
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('API Response:', data);
+            document.getElementById('results').innerHTML = 
+                '<h2>API Test Results:</h2>' +
+                '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('results').innerHTML = 
+                '<h2>Error:</h2>' + error.message;
+        });
+    </script>
+</body>
+</html>

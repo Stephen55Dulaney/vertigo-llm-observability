@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Analytics - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>📊 Advanced Analytics</h1>
+            <p class="lead">Intelligent insights, trend analysis, and predictive monitoring for your LLM operations.</p>
+        </div>
+    </div>
+    
+    <!-- Analytics Summary Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="health-score">-</h4>
+                            <p class="mb-0">System Health</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-heart-pulse fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="health-trend" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="trends-count">-</h4>
+                            <p class="mb-0">Trends Analyzed</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="anomalies-count">-</h4>
+                            <p class="mb-0">Anomalies Detected</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="insights-count">-</h4>
+                            <p class="mb-0">Insights Generated</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-lightbulb fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Analytics Content -->
+    <div class="row mt-4">
+        <!-- Performance Trends -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Performance Trend Analysis</h5>
+                    <div class="d-flex gap-2">
+                        <select id="trend-metric" class="form-select form-select-sm">
+                            <option value="error_rate">Error Rate</option>
+                            <option value="average_latency" selected>Average Latency</option>
+                            <option value="total_cost">Total Cost</option>
+                            <option value="trace_volume">Trace Volume</option>
+                            <option value="success_rate">Success Rate</option>
+                        </select>
+                        <select id="trend-period" class="form-select form-select-sm">
+                            <option value="24" selected>24 Hours</option>
+                            <option value="72">3 Days</option>
+                            <option value="168">1 Week</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendsChart" width="400" height="200"></canvas>
+                    <div id="trend-insights" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Health Score -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Health Score</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="position-relative">
+                        <canvas id="healthChart" width="200" height="200"></canvas>
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <h2 id="health-score-display" class="mb-0">-</h2>
+                            <small class="text-muted">Health Score</small>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <small class="text-muted">Data Quality</small>
+                                <div id="data-quality-score" class="fw-bold">-</div>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">Critical Issues</small>
+                                <div id="critical-issues" class="fw-bold text-danger">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Anomalies and Insights -->
+    <div class="row mt-4">
+        <!-- Anomalies Detection -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Anomaly Detection</h5>
+                    <button id="refresh-anomalies" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="anomalies-list">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing for anomalies...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Insights -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Performance Insights</h5>
+                    <button id="refresh-insights" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-lightbulb"></i> Generate
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="insights-list">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Generating insights...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Predictive Analytics -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Predictive Analytics & Capacity Planning</h5>
+                    <div>
+                        <select id="prediction-horizon" class="form-select form-select-sm">
+                            <option value="1">Next Hour</option>
+                            <option value="6">Next 6 Hours</option>
+                            <option value="24" selected>Next 24 Hours</option>
+                            <option value="168">Next Week</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="predictions-content">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Generating predictions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let trendsChart = null;
+    let healthChart = null;
+    let currentTrendMetric = 'average_latency';
+    let currentTrendPeriod = 24;
+    
+    // Initialize charts
+    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+    const healthCtx = document.getElementById('healthChart').getContext('2d');
+    
+    // Health Score Doughnut Chart
+    const healthChartConfig = {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [0, 100],
+                backgroundColor: ['#28a745', '#e9ecef'],
+                borderWidth: 0,
+                cutout: '75%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: false
+                }
+            }
+        }
+    };
+    
+    healthChart = new Chart(healthCtx, healthChartConfig);
+    
+    // Trends Chart Configuration
+    const trendsChartConfig = {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: []
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Value'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time Period'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    };
+    
+    trendsChart = new Chart(trendsCtx, trendsChartConfig);
+    
+    // Fetch and update analytics summary
+    async function updateAnalyticsSummary() {
+        try {
+            const response = await fetch('/analytics/api/summary');
+            const result = await response.json();
+            
+            if (result.success && result.summary) {
+                const summary = result.summary;
+                
+                // Update summary cards
+                document.getElementById('health-score').textContent = `${summary.overall_health_score || 0}%`;
+                document.getElementById('trends-count').textContent = summary.trends_analyzed || 0;
+                document.getElementById('anomalies-count').textContent = summary.anomalies_detected || 0;
+                document.getElementById('insights-count').textContent = summary.insights_generated || 0;
+                
+                // Update health chart
+                const healthScore = summary.overall_health_score || 0;
+                healthChart.data.datasets[0].data = [healthScore, 100 - healthScore];
+                
+                // Update health chart color based on score
+                let healthColor = '#dc3545'; // Red
+                if (healthScore >= 80) healthColor = '#28a745'; // Green
+                else if (healthScore >= 60) healthColor = '#ffc107'; // Yellow
+                else if (healthScore >= 40) healthColor = '#fd7e14'; // Orange
+                
+                healthChart.data.datasets[0].backgroundColor[0] = healthColor;
+                healthChart.update();
+                
+                // Update health display
+                document.getElementById('health-score-display').textContent = `${healthScore}%`;
+                document.getElementById('data-quality-score').textContent = `${summary.data_quality_score || 0}%`;
+                document.getElementById('critical-issues').textContent = summary.critical_anomalies || 0;
+            }
+        } catch (error) {
+            console.error('Error fetching analytics summary:', error);
+        }
+    }
+    
+    // Fetch and update trend analysis
+    async function updateTrendAnalysis() {
+        try {
+            const response = await fetch(`/analytics/api/trend-chart-data?metric=${currentTrendMetric}&hours=${currentTrendPeriod}`);
+            const result = await response.json();
+            
+            if (result.success && result.chart_data) {
+                const chartData = result.chart_data;
+                
+                // Update trends chart
+                trendsChart.data = chartData;
+                trendsChart.update();
+                
+                // Update trend insights
+                const trendInfo = chartData.trend_info;
+                let trendHtml = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <i class="fas fa-${trendInfo.direction === 'up' ? 'arrow-up text-primary' : trendInfo.direction === 'down' ? 'arrow-down text-success' : 'minus text-muted'} fa-2x"></i>
+                                <div class="mt-1">
+                                    <strong>${trendInfo.direction.toUpperCase()}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h4 class="${trendInfo.change_percentage > 0 ? 'text-primary' : 'text-success'}">${trendInfo.change_percentage > 0 ? '+' : ''}${trendInfo.change_percentage}%</h4>
+                                <div class="text-muted">Change</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar" role="progressbar" style="width: ${trendInfo.confidence * 100}%" aria-valuenow="${trendInfo.confidence * 100}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="mt-1 text-muted small">Confidence: ${Math.round(trendInfo.confidence * 100)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                if (trendInfo.prediction !== null) {
+                    trendHtml += `
+                        <div class="mt-3 p-2 bg-light rounded">
+                            <i class="fas fa-crystal-ball text-info"></i>
+                            <strong>Prediction:</strong> Next hour estimate: ${trendInfo.prediction}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('trend-insights').innerHTML = trendHtml;
+            }
+        } catch (error) {
+            console.error('Error fetching trend analysis:', error);
+        }
+    }
+    
+    // Fetch and update anomalies
+    async function updateAnomalies() {
+        try {
+            const response = await fetch('/analytics/api/anomalies?hours=168');
+            const result = await response.json();
+            
+            const anomaliesList = document.getElementById('anomalies-list');
+            
+            if (result.success && result.anomalies) {
+                if (result.anomalies.length === 0) {
+                    anomaliesList.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                            <p>No significant anomalies detected in the last week.</p>
+                        </div>
+                    `;
+                } else {
+                    let anomaliesHtml = '';
+                    result.anomalies.slice(0, 5).forEach(anomaly => {
+                        const severityClass = {
+                            'critical': 'danger',
+                            'high': 'warning',
+                            'medium': 'info',
+                            'low': 'secondary'
+                        }[anomaly.severity] || 'secondary';
+                        
+                        const severityIcon = {
+                            'critical': 'exclamation-circle',
+                            'high': 'exclamation-triangle',
+                            'medium': 'info-circle',
+                            'low': 'circle'
+                        }[anomaly.severity] || 'circle';
+                        
+                        anomaliesHtml += `
+                            <div class="border-start border-${severityClass} border-3 ps-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-bold">
+                                            <i class="fas fa-${severityIcon} text-${severityClass}"></i>
+                                            ${anomaly.metric_name.toUpperCase()}
+                                        </div>
+                                        <div class="text-muted small">${new Date(anomaly.timestamp).toLocaleString()}</div>
+                                    </div>
+                                    <span class="badge bg-${severityClass}">${anomaly.severity.toUpperCase()}</span>
+                                </div>
+                                <div class="mt-2 small">
+                                    ${anomaly.description}
+                                </div>
+                                <div class="mt-1 text-muted small">
+                                    Deviation: ${anomaly.deviation_score.toFixed(1)}σ
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    anomaliesList.innerHTML = anomaliesHtml;
+                }
+            } else {
+                anomaliesList.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading anomalies. Please try again.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error fetching anomalies:', error);
+        }
+    }
+    
+    // Fetch and update insights
+    async function updateInsights() {
+        try {
+            const response = await fetch('/analytics/api/insights');
+            const result = await response.json();
+            
+            const insightsList = document.getElementById('insights-list');
+            
+            if (result.success && result.insights) {
+                if (result.insights.length === 0) {
+                    insightsList.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-lightbulb fa-3x mb-3"></i>
+                            <p>All systems operating normally. No insights at this time.</p>
+                        </div>
+                    `;
+                } else {
+                    let insightsHtml = '';
+                    result.insights.slice(0, 5).forEach(insight => {
+                        const impactClass = {
+                            'critical': 'danger',
+                            'high': 'warning',
+                            'medium': 'info',
+                            'low': 'success'
+                        }[insight.impact_level] || 'info';
+                        
+                        const impactIcon = {
+                            'critical': 'exclamation-circle',
+                            'high': 'exclamation-triangle',
+                            'medium': 'info-circle',
+                            'low': 'check-circle'
+                        }[insight.impact_level] || 'info-circle';
+                        
+                        insightsHtml += `
+                            <div class="border-start border-${impactClass} border-3 ps-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="fw-bold">
+                                        <i class="fas fa-${impactIcon} text-${impactClass}"></i>
+                                        ${insight.title}
+                                    </div>
+                                    <span class="badge bg-${impactClass}">${insight.impact_level.toUpperCase()}</span>
+                                </div>
+                                <div class="mt-2 small text-muted">
+                                    ${insight.description}
+                                </div>
+                                <div class="mt-2 p-2 bg-light rounded small">
+                                    <strong>Recommendation:</strong> ${insight.recommendation}
+                                </div>
+                                <div class="mt-1 text-muted small">
+                                    Confidence: ${Math.round(insight.confidence * 100)}%
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    insightsList.innerHTML = insightsHtml;
+                }
+            } else {
+                insightsList.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading insights. Please try again.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error fetching insights:', error);
+        }
+    }
+    
+    // Fetch and update predictions
+    async function updatePredictions() {
+        try {
+            const horizon = document.getElementById('prediction-horizon').value;
+            const response = await fetch(`/analytics/api/predictions?hours=${horizon}`);
+            const result = await response.json();
+            
+            const predictionsContent = document.getElementById('predictions-content');
+            
+            if (result.success && result.predictions) {
+                const predictions = result.predictions.predictions || {};
+                const recommendations = result.predictions.recommendations || [];
+                
+                if (Object.keys(predictions).length === 0 && recommendations.length === 0) {
+                    predictionsContent.innerHTML = `
+                        <div class="text-center text-muted">
+                            <i class="fas fa-crystal-ball fa-3x mb-3"></i>
+                            <p>Insufficient data for reliable predictions. Check back after more usage data is collected.</p>
+                        </div>
+                    `;
+                } else {
+                    let predictionsHtml = '';
+                    
+                    if (Object.keys(predictions).length > 0) {
+                        predictionsHtml += '<h6>Capacity Predictions</h6><div class="row">';
+                        
+                        for (const [metric, data] of Object.entries(predictions)) {
+                            const changeColor = data.change_percentage > 20 ? 'danger' : data.change_percentage > 5 ? 'warning' : 'success';
+                            
+                            predictionsHtml += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">${metric.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h6>
+                                            <div class="d-flex justify-content-between">
+                                                <div>
+                                                    <div class="text-muted small">Current</div>
+                                                    <div class="fw-bold">${data.current_value.toFixed(2)}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-muted small">Predicted</div>
+                                                    <div class="fw-bold">${data.predicted_value.toFixed(2)}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-muted small">Change</div>
+                                                    <div class="fw-bold text-${changeColor}">
+                                                        ${data.change_percentage > 0 ? '+' : ''}${data.change_percentage.toFixed(1)}%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <div class="progress" style="height: 4px;">
+                                                    <div class="progress-bar" style="width: ${data.confidence * 100}%"></div>
+                                                </div>
+                                                <div class="text-muted small mt-1">Confidence: ${Math.round(data.confidence * 100)}%</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        predictionsHtml += '</div>';
+                    }
+                    
+                    if (recommendations.length > 0) {
+                        predictionsHtml += '<h6 class="mt-3">Recommendations</h6>';
+                        recommendations.forEach(recommendation => {
+                            predictionsHtml += `
+                                <div class="alert alert-info">
+                                    <i class="fas fa-lightbulb"></i>
+                                    ${recommendation}
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    predictionsContent.innerHTML = predictionsHtml;
+                }
+            } else {
+                predictionsContent.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading predictions. Please try again.
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error fetching predictions:', error);
+        }
+    }
+    
+    // Event listeners
+    document.getElementById('trend-metric').addEventListener('change', function() {
+        currentTrendMetric = this.value;
+        updateTrendAnalysis();
+    });
+    
+    document.getElementById('trend-period').addEventListener('change', function() {
+        currentTrendPeriod = parseInt(this.value);
+        updateTrendAnalysis();
+    });
+    
+    document.getElementById('prediction-horizon').addEventListener('change', function() {
+        updatePredictions();
+    });
+    
+    document.getElementById('refresh-anomalies').addEventListener('click', function() {
+        updateAnomalies();
+    });
+    
+    document.getElementById('refresh-insights').addEventListener('click', function() {
+        updateInsights();
+    });
+    
+    // Initial data load
+    updateAnalyticsSummary();
+    updateTrendAnalysis();
+    updateAnomalies();
+    updateInsights();
+    updatePredictions();
+    
+    // Auto-refresh every 2 minutes
+    setInterval(() => {
+        updateAnalyticsSummary();
+        updateTrendAnalysis();
+    }, 120000);
+    
+    // Auto-refresh anomalies and insights every 5 minutes
+    setInterval(() => {
+        updateAnomalies();
+        updateInsights();
+        updatePredictions();
+    }, 300000);
+});
+</script>
+{% endblock %}

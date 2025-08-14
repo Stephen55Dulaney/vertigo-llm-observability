@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+
+{% block title %}{{ rule.name }} - Alert Rule Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1>
+                        <i class="fas fa-bell {% if rule.is_active %}text-success{% else %}text-muted{% endif %}"></i>
+                        {{ rule.name }}
+                        {% if not rule.is_active %}
+                        <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                    </h1>
+                    <p class="text-muted">Alert rule details and evaluation history</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{{ url_for('alerts.index') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Alerts
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('alerts.edit_rule', rule_id=rule.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit Rule
+                    </a>
+                    <button class="btn btn-outline-info" onclick="testRule()">
+                        <i class="fas fa-flask"></i> Test Rule
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Rule Configuration -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-cog"></i> Rule Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Alert Type:</strong></td>
+                                    <td><span class="badge badge-secondary">{{ rule.alert_type }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Threshold:</strong></td>
+                                    <td>{{ rule.comparison_operator }} {{ rule.threshold_value }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Time Window:</strong></td>
+                                    <td>{{ rule.time_window_minutes }} minutes</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Severity:</strong></td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if rule.severity == 'low' %}badge-success
+                                            {% elif rule.severity == 'medium' %}badge-warning
+                                            {% elif rule.severity == 'high' %}badge-danger
+                                            {% else %}badge-dark{% endif %}">
+                                            {{ rule.severity|upper }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Data Source:</strong></td>
+                                    <td>{{ rule.data_source.name if rule.data_source else 'All Sources' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Cooldown:</strong></td>
+                                    <td>{{ rule.cooldown_minutes }} minutes</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Created:</strong></td>
+                                    <td>{{ rule.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Last Modified:</strong></td>
+                                    <td>{{ rule.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if rule.notification_channels %}
+                    <div class="mt-3">
+                        <strong>Notification Channels:</strong>
+                        <div class="mt-2">
+                            {% set channels = rule.notification_channels | from_json %}
+                            {% for channel in channels %}
+                            <span class="badge badge-info mr-1">
+                                <i class="fas fa-{% if channel == 'email' %}envelope{% elif channel == 'slack' %}slack{% elif channel == 'sms' %}sms{% else %}webhook{% endif %}"></i>
+                                {{ channel|title }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if rule.condition_query %}
+                    <div class="mt-3">
+                        <strong>Custom Condition:</strong>
+                        <pre class="bg-light p-2 mt-2"><code>{{ rule.condition_query }}</code></pre>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Current Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h6>Current Value</h6>
+                            <span class="badge badge-lg badge-{% if current_value and current_value.get('triggered') %}danger{% else %}success{% endif %}">
+                                {{ current_value.value if current_value else 'N/A' }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Threshold</h6>
+                            <span class="badge badge-lg badge-info">
+                                {{ rule.comparison_operator }} {{ rule.threshold_value }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Status</h6>
+                            <span class="badge badge-lg badge-{% if rule.is_active %}success{% else %}secondary{% endif %}">
+                                {% if rule.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Last Check</h6>
+                            <small class="text-muted">
+                                <span id="lastCheckTime">Loading...</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Evaluation History Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-area"></i> 24-Hour Evaluation History</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="evaluationChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Events -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5><i class="fas fa-history"></i> Recent Events</h5>
+                    <a href="{{ url_for('alerts.events', rule_id=rule.id) }}" class="btn btn-sm btn-outline-primary">
+                        View All Events
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if events %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Triggered</th>
+                                    <th>Value</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                <tr>
+                                    <td>
+                                        <small>{{ event.triggered_at.strftime('%m-%d %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm badge-{% if event.trigger_value > event.threshold_value %}warning{% else %}secondary{% endif %}">
+                                            {{ event.trigger_value }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small>{{ event.message[:100] }}{% if event.message|length > 100 %}...{% endif %}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-sm 
+                                            {% if event.status == 'active' %}badge-warning
+                                            {% elif event.status == 'resolved' %}badge-success
+                                            {% elif event.status == 'acknowledged' %}badge-info
+                                            {% else %}badge-secondary{% endif %}">
+                                            {{ event.status }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if event.status == 'active' and current_user.is_admin %}
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-info btn-sm" 
+                                                    onclick="acknowledgeEvent({{ event.id }})" title="Acknowledge">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="resolveEvent({{ event.id }})" title="Resolve">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No alert events yet</p>
+                        <small class="text-muted">This rule hasn't been triggered</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Statistics -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-chart-bar"></i> Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td>Total Triggers:</td>
+                            <td><strong>{{ rule.trigger_count or 0 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Last Triggered:</td>
+                            <td>
+                                {% if rule.last_triggered %}
+                                <small>{{ rule.last_triggered.strftime('%Y-%m-%d %H:%M') }}</small>
+                                {% else %}
+                                <small class="text-muted">Never</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Active Events:</td>
+                            <td><strong>{{ events | selectattr("status", "equalto", "active") | list | length }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Resolved Events:</td>
+                            <td><strong>{{ events | selectattr("status", "equalto", "resolved") | list | length }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            {% if current_user.is_admin %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6><i class="fas fa-tools"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-{% if rule.is_active %}warning{% else %}success{% endif %} btn-sm" 
+                                onclick="toggleRule()">
+                            <i class="fas fa-{% if rule.is_active %}pause{% else %}play{% endif %}"></i>
+                            {% if rule.is_active %}Deactivate{% else %}Activate{% endif %} Rule
+                        </button>
+                        
+                        <button class="btn btn-outline-info btn-sm" onclick="testRule()">
+                            <i class="fas fa-flask"></i> Test Evaluation
+                        </button>
+                        
+                        <button class="btn btn-outline-warning btn-sm" onclick="testNotifications()">
+                            <i class="fas fa-bell"></i> Test Notifications
+                        </button>
+                        
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteRule()" 
+                                data-toggle="tooltip" title="Permanently delete this rule">
+                            <i class="fas fa-trash"></i> Delete Rule
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Related Information -->
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> Information</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        This alert rule monitors <strong>{{ rule.alert_type }}</strong> 
+                        and triggers when the value is <strong>{{ rule.comparison_operator }} {{ rule.threshold_value }}</strong> 
+                        over a {{ rule.time_window_minutes }}-minute window.
+                    </p>
+                    
+                    {% if rule.cooldown_minutes > 0 %}
+                    <p class="small text-muted">
+                        <i class="fas fa-clock"></i> After triggering, this rule has a {{ rule.cooldown_minutes }}-minute 
+                        cooldown period before it can trigger again.
+                    </p>
+                    {% endif %}
+                    
+                    <p class="small text-muted">
+                        <i class="fas fa-database"></i> 
+                        {% if rule.data_source %}
+                        Monitoring data from: <strong>{{ rule.data_source.name }}</strong>
+                        {% else %}
+                        Monitoring data from: <strong>All available sources</strong>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let evaluationChart;
+
+$(document).ready(function() {
+    initializeChart();
+    updateLastCheckTime();
+    
+    // Refresh data every 30 seconds
+    setInterval(function() {
+        updateLastCheckTime();
+        refreshCurrentValue();
+    }, 30000);
+});
+
+function initializeChart() {
+    const ctx = document.getElementById('evaluationChart').getContext('2d');
+    
+    // Sample data - in real implementation, this would come from evaluation_history
+    const data = {
+        labels: [], // Will be populated with timestamps
+        datasets: [{
+            label: 'Metric Value',
+            data: [],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }, {
+            label: 'Threshold',
+            data: [],
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderDash: [5, 5]
+        }]
+    };
+    
+    evaluationChart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+    
+    // Load actual evaluation history
+    loadEvaluationHistory();
+}
+
+function loadEvaluationHistory() {
+    // In real implementation, this would fetch from evaluation_history
+    const now = new Date();
+    const labels = [];
+    const metricData = [];
+    const thresholdData = [];
+    
+    for (let i = 23; i >= 0; i--) {
+        const time = new Date(now.getTime() - (i * 60 * 60 * 1000));
+        labels.push(time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+        
+        // Generate sample data
+        metricData.push(Math.random() * 10 + 2);
+        thresholdData.push({{ rule.threshold_value }});
+    }
+    
+    evaluationChart.data.labels = labels;
+    evaluationChart.data.datasets[0].data = metricData;
+    evaluationChart.data.datasets[1].data = thresholdData;
+    evaluationChart.update();
+}
+
+function updateLastCheckTime() {
+    $('#lastCheckTime').text(new Date().toLocaleTimeString());
+}
+
+function refreshCurrentValue() {
+    // Fetch current metric value
+    fetch(`/alerts/api/metrics/current`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the current value display based on alert type
+                // This would be implemented based on the specific metric
+                console.log('Current metrics:', data.metrics);
+            }
+        })
+        .catch(error => console.error('Error refreshing current value:', error));
+}
+
+function testRule() {
+    fetch(`/alerts/api/test/{{ rule.id }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Test completed:\n\nRule: ${data.rule_name}\nResult: ${JSON.stringify(data.evaluation_result, null, 2)}`);
+            } else {
+                alert('Error testing rule: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error testing rule:', error);
+            alert('Error testing rule');
+        });
+}
+
+function toggleRule() {
+    fetch(`/alerts/rule/{{ rule.id }}/toggle`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error toggling rule status');
+    });
+}
+
+function acknowledgeEvent(eventId) {
+    const note = prompt('Acknowledgment note (optional):');
+    if (note !== null) {
+        fetch(`/alerts/event/${eventId}/acknowledge`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ note: note })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function resolveEvent(eventId) {
+    if (confirm('Mark this alert as resolved?')) {
+        fetch(`/alerts/event/${eventId}/resolve`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function testNotifications() {
+    alert('Testing notification channels...\n\nThis would send test notifications via all configured channels.');
+}
+
+function deleteRule() {
+    if (confirm(`Are you sure you want to delete the alert rule "${rule.name}"?\n\nThis action cannot be undone.`)) {
+        fetch(`/alerts/rule/{{ rule.id }}/delete`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '{{ url_for("alerts.index") }}';
+            } else {
+                alert('Error deleting rule');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting rule');
+        });
+    }
+}
+</script>
+
+<style>
+.badge-lg {
+    font-size: 1.2em;
+    padding: 0.6em 1.2em;
+}
+
+.table-borderless td {
+    border: none;
+    padding: 0.25rem 0.5rem;
+}
+
+#evaluationChart {
+    height: 300px;
+}
+</style>
+{% endblock %}

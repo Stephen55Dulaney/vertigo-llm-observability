@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Response - Vertigo Debug Toolkit</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            <i class="fas fa-shield-alt text-blue-600 mr-2"></i>
+                            Anomaly Response Dashboard
+                        </h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div id="monitoring-status" class="flex items-center">
+                            <div class="w-3 h-3 rounded-full mr-2" 
+                                 class="{{ 'bg-green-500' if monitoring_status.status == 'running' else 'bg-red-500' }}"></div>
+                            <span class="text-sm text-gray-600">Monitoring: {{ monitoring_status.status|title }}</span>
+                        </div>
+                        <button id="refresh-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-sync-alt mr-1"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <!-- Control Panel -->
+            <div class="bg-white rounded-lg shadow mb-6 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Monitoring Control</h2>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <button id="start-monitoring" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50">
+                            <i class="fas fa-play mr-1"></i> Start Monitoring
+                        </button>
+                        <button id="stop-monitoring" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50">
+                            <i class="fas fa-stop mr-1"></i> Stop Monitoring
+                        </button>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        Poll Interval: {{ monitoring_status.config.poll_interval_seconds }}s | 
+                        Auto Response: {{ 'Enabled' if monitoring_status.config.enable_auto_response else 'Disabled' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- Monitoring Stats -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-search text-blue-600 text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ monitoring_status.statistics.total_checks }}</h3>
+                            <p class="text-sm text-gray-600">Total Checks</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Anomalies: {{ monitoring_status.statistics.anomalies_detected }}
+                    </div>
+                </div>
+
+                <!-- Response Stats -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-robot text-green-600 text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ response_stats.total_responses }}</h3>
+                            <p class="text-sm text-gray-600">Auto Responses</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Success Rate: {{ "%.1f"|format(response_stats.success_rate) }}%
+                    </div>
+                </div>
+
+                <!-- Active Alerts -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ monitoring_status.active_alerts }}</h3>
+                            <p class="text-sm text-gray-600">Active Alerts</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Pending Approvals: {{ response_stats.pending_approvals }}
+                    </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-heartbeat text-red-600 text-2xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                {{ "%.1f"|format(monitoring_status.statistics.avg_detection_time_ms) }}ms
+                            </h3>
+                            <p class="text-sm text-gray-600">Avg Detection Time</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500">
+                        Thread: {{ 'Active' if monitoring_status.thread_alive else 'Inactive' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            {% if pending_approvals %}
+            <div class="bg-white rounded-lg shadow mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-user-check text-orange-600 mr-2"></i>
+                        Pending Approvals ({{ pending_approvals|length }})
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        {% for approval in pending_approvals %}
+                        <div class="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-gray-900">{{ approval.action_name }}</h3>
+                                    <p class="text-sm text-gray-600 mt-1">{{ approval.action_description }}</p>
+                                    <div class="mt-2 text-xs text-gray-500">
+                                        <span class="mr-4">Metric: {{ approval.anomaly_metric }}</span>
+                                        <span class="mr-4">Severity: {{ approval.anomaly_severity|title }}</span>
+                                        <span>Requested: {{ approval.requested_at }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2 ml-4">
+                                    <button class="approve-btn bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
+                                            data-execution-id="{{ approval.execution_id }}">
+                                        <i class="fas fa-check mr-1"></i> Approve
+                                    </button>
+                                    <button class="reject-btn bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                                            data-execution-id="{{ approval.execution_id }}">
+                                        <i class="fas fa-times mr-1"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Anomalies -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-chart-line text-red-600 mr-2"></i>
+                        Recent Anomalies ({{ recent_anomalies|length }})
+                    </h2>
+                    <button id="clear-anomalies" class="text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700">
+                        <i class="fas fa-trash mr-1"></i> Clear Old
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metric</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Values</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Response</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for anomaly in recent_anomalies %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ anomaly.timestamp.strftime('%H:%M:%S') }}<br>
+                                    <span class="text-xs text-gray-500">{{ anomaly.timestamp.strftime('%Y-%m-%d') }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ anomaly.metric_name }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ anomaly.anomaly_type.value|title }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                        {% if anomaly.severity.value == 'critical' %}bg-red-100 text-red-800
+                                        {% elif anomaly.severity.value == 'high' %}bg-orange-100 text-orange-800
+                                        {% elif anomaly.severity.value == 'medium' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ anomaly.severity.value|title }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    <div class="text-xs">
+                                        <div>Actual: {{ "%.3f"|format(anomaly.actual_value) }}</div>
+                                        <div>Expected: {{ "%.3f"|format(anomaly.expected_value) }}</div>
+                                        <div>Deviation: {{ "%.2f"|format(anomaly.deviation_score) }}σ</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                    {% if anomaly.auto_response_triggered %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            <i class="fas fa-robot mr-1"></i> Auto Response
+                                        </span>
+                                        {% if anomaly.response_actions %}
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            {{ anomaly.response_actions|length }} action(s)
+                                        </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            Manual Only
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600 max-w-md">
+                                    <div class="truncate" title="{{ anomaly.message }}">
+                                        {{ anomaly.message }}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if not recent_anomalies %}
+                    <div class="text-center py-12">
+                        <i class="fas fa-chart-line text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">No anomalies detected recently</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loading-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                    <i class="fas fa-spinner fa-spin text-blue-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Processing...</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500" id="loading-message">Please wait while we process your request.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh functionality
+        let autoRefreshInterval;
+        
+        function showLoading(message = 'Processing...') {
+            document.getElementById('loading-message').textContent = message;
+            document.getElementById('loading-modal').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-modal').classList.add('hidden');
+        }
+        
+        function refreshPage() {
+            showLoading('Refreshing dashboard...');
+            window.location.reload();
+        }
+        
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Request failed:', error);
+                alert(`Error: ${error.message}`);
+                return null;
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('refresh-btn').addEventListener('click', refreshPage);
+        
+        document.getElementById('start-monitoring').addEventListener('click', async () => {
+            showLoading('Starting monitoring...');
+            const result = await makeRequest('/anomaly-response/api/monitoring/start', { method: 'POST' });
+            hideLoading();
+            
+            if (result && result.success) {
+                alert('Monitoring started successfully');
+                refreshPage();
+            }
+        });
+        
+        document.getElementById('stop-monitoring').addEventListener('click', async () => {
+            showLoading('Stopping monitoring...');
+            const result = await makeRequest('/anomaly-response/api/monitoring/stop', { method: 'POST' });
+            hideLoading();
+            
+            if (result && result.success) {
+                alert('Monitoring stopped successfully');
+                refreshPage();
+            }
+        });
+        
+        document.getElementById('clear-anomalies').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to clear old anomalies?')) return;
+            
+            showLoading('Clearing anomalies...');
+            const result = await makeRequest('/anomaly-response/api/anomalies/clear', { method: 'POST' });
+            hideLoading();
+            
+            if (result && result.success) {
+                alert('Old anomalies cleared successfully');
+                refreshPage();
+            }
+        });
+        
+        // Approval buttons
+        document.querySelectorAll('.approve-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const executionId = btn.getAttribute('data-execution-id');
+                const approver = prompt('Enter your name for approval:');
+                if (!approver) return;
+                
+                showLoading('Processing approval...');
+                const result = await makeRequest(`/anomaly-response/api/responses/approve/${executionId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ approved: true, approver: approver })
+                });
+                hideLoading();
+                
+                if (result && result.success) {
+                    alert('Response approved successfully');
+                    refreshPage();
+                }
+            });
+        });
+        
+        document.querySelectorAll('.reject-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const executionId = btn.getAttribute('data-execution-id');
+                const approver = prompt('Enter your name for rejection:');
+                if (!approver) return;
+                
+                if (!confirm('Are you sure you want to reject this automated response?')) return;
+                
+                showLoading('Processing rejection...');
+                const result = await makeRequest(`/anomaly-response/api/responses/approve/${executionId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ approved: false, approver: approver })
+                });
+                hideLoading();
+                
+                if (result && result.success) {
+                    alert('Response rejected successfully');
+                    refreshPage();
+                }
+            });
+        });
+        
+        // Auto-refresh every 30 seconds
+        autoRefreshInterval = setInterval(() => {
+            console.log('Auto-refreshing anomaly data...');
+            // In a production system, you'd make AJAX calls to update specific sections
+            // For now, we'll just refresh periodically
+        }, 30000);
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+# Setup module for Vertigo Scenario Framework

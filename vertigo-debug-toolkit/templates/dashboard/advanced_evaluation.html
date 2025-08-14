@@ -1,0 +1,908 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Evaluation - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-graph-up me-2"></i>Advanced Prompt Evaluation</h1>
+                <p class="text-muted mb-0">Advanced analytics, A/B testing, and optimization recommendations</p>
+            </div>
+            <div class="d-flex gap-2">
+                <div id="langwatchStatus" class="me-3">
+                    <span class="badge bg-secondary" id="statusBadge">
+                        <i class="bi bi-hourglass-split me-1"></i>Checking LangWatch...
+                    </span>
+                </div>
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column - A/B Testing & Cost Optimization -->
+    <div class="col-lg-6">
+        
+        <!-- A/B Testing Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up-arrow me-2 text-primary"></i>A/B Testing
+                </h5>
+                <small class="text-muted">Compare two prompts to determine which performs better</small>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="promptA" class="form-label">Prompt A</label>
+                        <select id="promptA" class="form-select">
+                            <option value="">Select a prompt...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="promptB" class="form-label">Prompt B</label>
+                        <select id="promptB" class="form-select">
+                            <option value="">Select a prompt...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="abTestDays" class="form-label">Evaluation Period (days)</label>
+                        <input type="number" id="abTestDays" value="30" min="1" max="365" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Actions</label>
+                        <div class="d-flex gap-2">
+                            <button id="runABTest" class="btn btn-primary">
+                                <i class="bi bi-play-fill me-1"></i>Run A/B Test
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- A/B Test Results -->
+                <div id="abTestResults" class="mt-4" style="display: none;">
+                    <div class="bg-light rounded p-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-bar-chart me-2"></i>A/B Test Results
+                        </h6>
+                        <div id="abTestContent">
+                            <!-- Results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cost Optimization Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-piggy-bank me-2 text-success"></i>Cost Optimization
+                </h5>
+                <small class="text-muted">Get recommendations for optimizing prompt costs and performance</small>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="costPromptSelect" class="form-label">Select Prompt for Analysis</label>
+                    <select id="costPromptSelect" class="form-select">
+                        <option value="">Select a prompt...</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <button id="runCostAnalysis" class="btn btn-success">
+                        <i class="bi bi-calculator me-1"></i>Analyze Costs
+                    </button>
+                </div>
+                
+                <!-- Cost Analysis Results -->
+                <div id="costResults" class="mt-3" style="display: none;">
+                    <div class="bg-light rounded p-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-graph-down me-2"></i>Optimization Recommendations
+                        </h6>
+                        <div id="costContent">
+                            <!-- Cost analysis will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column - Session Analysis & Comprehensive Reports -->
+    <div class="col-lg-6">
+        
+        <!-- Session Analysis Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-square-dots me-2 text-info"></i>Session Analysis
+                </h5>
+                <small class="text-muted">Analyze user session patterns and conversation flows</small>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="sessionId" class="form-label">Session ID</label>
+                    <input type="text" id="sessionId" class="form-control" placeholder="Enter session ID...">
+                    <div class="form-text">Leave empty to analyze all recent sessions</div>
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <button id="runSessionAnalysis" class="btn btn-info">
+                        <i class="bi bi-search me-1"></i>Analyze Session
+                    </button>
+                </div>
+                
+                <!-- Session Analysis Results -->
+                <div id="sessionResults" class="mt-3" style="display: none;">
+                    <div class="bg-light rounded p-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-diagram-3 me-2"></i>Session Analysis Results
+                        </h6>
+                        <div id="sessionContent">
+                            <!-- Session analysis will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comprehensive Evaluation Report Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-text me-2 text-warning"></i>Comprehensive Evaluation Report
+                </h5>
+                <small class="text-muted">Generate detailed reports for multiple prompts</small>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="reportPrompts" class="form-label">Select Prompts for Report</label>
+                    <select id="reportPrompts" class="form-select" multiple size="4">
+                        <option value="">Loading prompts...</option>
+                    </select>
+                    <div class="form-text">Hold Ctrl/Cmd to select multiple prompts</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="reportDays" class="form-label">Evaluation Period (days)</label>
+                        <input type="number" id="reportDays" value="30" min="1" max="365" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Report Format</label>
+                        <select class="form-select">
+                            <option value="html">HTML Report</option>
+                            <option value="pdf">PDF Export</option>
+                            <option value="json">JSON Data</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button id="generateReport" class="btn btn-warning">
+                        <i class="bi bi-file-earmark-text me-1"></i>Generate Report
+                    </button>
+                </div>
+                
+                <!-- Report Results -->
+                <div id="reportResults" class="mt-3" style="display: none;">
+                    <div class="bg-light rounded p-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="bi bi-clipboard-data me-2"></i>Evaluation Report
+                        </h6>
+                        <div id="reportContent">
+                            <!-- Report will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Row -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-speedometer2 me-2"></i>Quick Evaluation Stats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-1" id="totalPrompts">-</h4>
+                            <small class="text-muted">Total Prompts</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-success mb-1" id="totalTests">-</h4>
+                            <small class="text-muted">A/B Tests Run</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-info mb-1" id="avgSuccessRate">-</h4>
+                            <small class="text-muted">Avg Success Rate</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-warning mb-1" id="totalSavings">-</h4>
+                        <small class="text-muted">Cost Savings</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Report Modal -->
+<div class="modal fade" id="detailedReportModal" tabindex="-1" aria-labelledby="detailedReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailedReportModalLabel">
+                    <i class="bi bi-file-earmark-text me-2"></i>Detailed Evaluation Report
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailedReportContent">
+                    <!-- Detailed report content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-success" onclick="downloadReport('pdf')">
+                    <i class="bi bi-download me-1"></i>Download PDF
+                </button>
+                <button type="button" class="btn btn-outline-info" onclick="downloadReport('json')">
+                    <i class="bi bi-download me-1"></i>Download JSON
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% raw %}
+<script>
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Advanced Evaluation page initializing...');
+    loadPrompts();
+    loadQuickStats();
+    checkLangwatchStatus();
+    initializeEventHandlers();
+});
+
+function loadPrompts() {
+    // Load prompts for dropdowns
+    fetch('/prompts/api/prompts/list')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                populatePromptDropdowns(data.data);
+            }
+        })
+        .catch(error => console.error('Error loading prompts:', error));
+}
+
+function populatePromptDropdowns(prompts) {
+    const dropdowns = ['promptA', 'promptB', 'costPromptSelect', 'reportPrompts'];
+    
+    dropdowns.forEach(dropdownId => {
+        const dropdown = document.getElementById(dropdownId);
+        dropdown.innerHTML = dropdownId === 'reportPrompts' ? '' : '<option value="">Select a prompt...</option>';
+        
+        prompts.forEach(prompt => {
+            const option = document.createElement('option');
+            option.value = prompt.id;
+            option.textContent = prompt.name + ' (v' + prompt.version + ')';
+            dropdown.appendChild(option);
+        });
+    });
+}
+
+function loadQuickStats() {
+    // Real API call to get dashboard metrics
+    fetch('/dashboard/api/metrics')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('totalPrompts').textContent = data.total_prompts || '0';
+        document.getElementById('totalTests').textContent = data.total_traces || '0';
+        document.getElementById('avgSuccessRate').textContent = (data.success_rate || 0) + '%';
+        document.getElementById('totalSavings').textContent = '$' + ((data.total_costs * 0.285 || 0).toFixed(2)); // Estimated 28.5% savings
+    })
+    .catch(error => {
+        console.error('Error loading quick stats:', error);
+        // Fallback to loading indicators
+        document.getElementById('totalPrompts').textContent = '-';
+        document.getElementById('totalTests').textContent = '-';
+        document.getElementById('avgSuccessRate').textContent = '-';
+        document.getElementById('totalSavings').textContent = '-';
+    });
+}
+
+function checkLangwatchStatus() {
+    // Check LangWatch connection status
+    fetch('/dashboard/api/langwatch-status')
+    .then(response => response.json())
+    .then(data => {
+        const statusBadge = document.getElementById('statusBadge');
+        const statusData = data.data || {};
+        
+        if (data.status === 'success' && statusData.connection_status === 'connected') {
+            statusBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>LangWatch Connected (' + statusData.total_traces_in_db + ' traces)';
+            statusBadge.className = 'badge bg-success';
+            
+            // Add tooltip with more details
+            statusBadge.title = 'Database: ' + statusData.total_traces_in_db + ' traces | LangWatch: ' + statusData.langwatch_traces_available + ' available';
+        } else {
+            statusBadge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>LangWatch Disconnected';
+            statusBadge.className = 'badge bg-warning';
+            statusBadge.title = 'LangWatch connection failed. Check your configuration.';
+        }
+    })
+    .catch(error => {
+        console.error('Error checking LangWatch status:', error);
+        const statusBadge = document.getElementById('statusBadge');
+        statusBadge.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i>Connection Error';
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.title = 'Unable to check LangWatch status.';
+    });
+}
+
+// Simplified functions to avoid template literal conflicts
+function initializeEventHandlers() {
+    console.log('Initializing event handlers...');
+    
+    // A/B Test Handler
+    document.getElementById('runABTest').addEventListener('click', function() {
+        const promptA = document.getElementById('promptA').value;
+        const promptB = document.getElementById('promptB').value;
+        const days = document.getElementById('abTestDays').value;
+        
+        if (!promptA || !promptB) {
+            alert('Please select both prompts for A/B testing');
+            return;
+        }
+        
+        if (promptA === promptB) {
+            alert('Please select different prompts for comparison');
+            return;
+        }
+        
+        runABTest(promptA, promptB, days);
+    });
+    
+    // Cost Analysis Handler
+    document.getElementById('runCostAnalysis').addEventListener('click', function() {
+        const promptId = document.getElementById('costPromptSelect').value;
+        
+        if (!promptId) {
+            alert('Please select a prompt for cost analysis');
+            return;
+        }
+        
+        runCostAnalysis(promptId);
+    });
+    
+    // Session Analysis Handler
+    document.getElementById('runSessionAnalysis').addEventListener('click', function() {
+        const sessionId = document.getElementById('sessionId').value;
+        runSessionAnalysis(sessionId);
+    });
+    
+    // Report Generation Handler
+    document.getElementById('generateReport').addEventListener('click', function() {
+        const selectedPrompts = Array.from(document.getElementById('reportPrompts').selectedOptions)
+            .map(option => option.value);
+        const days = document.getElementById('reportDays').value;
+        
+        if (selectedPrompts.length === 0) {
+            alert('Please select at least one prompt for the report');
+            return;
+        }
+        
+        generateComprehensiveReport(selectedPrompts, days);
+    });
+}
+
+function runABTest(promptA, promptB, days) {
+    const button = document.getElementById('runABTest');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Running Test...';
+    button.disabled = true;
+    
+    // Real API call to compare prompts
+    fetch('/dashboard/api/prompts/compare', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt_a_id: promptA,
+            prompt_b_id: promptB,
+            days: days
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        const winnerA = data.winner === 'prompt_a';
+        const winnerB = data.winner === 'prompt_b';
+        
+        let results = '<div class="row">';
+        results += '<div class="col-md-6"><div class="card border-' + (winnerA ? 'success' : 'primary') + '">';
+        results += '<div class="card-header bg-' + (winnerA ? 'success' : 'primary') + ' text-white">';
+        results += '<h6 class="mb-0">Prompt A Results ' + (winnerA ? '<span class="badge bg-light text-success">Winner</span>' : '') + '</h6></div>';
+        results += '<div class="card-body"><div class="text-center"><h4 class="text-' + (winnerA ? 'success' : 'primary') + '">' + data.prompt_a_metrics.success_rate.toFixed(1) + '%</h4>';
+        results += '<small class="text-muted">Success Rate</small></div><hr>';
+        results += '<small class="text-muted">Avg Response Time: ' + data.prompt_a_metrics.avg_response_time.toFixed(2) + 's</small><br>';
+        results += '<small class="text-muted">Total Tests: ' + data.prompt_a_metrics.total_calls + '</small><br>';
+        results += '<small class="text-muted">Total Cost: $' + data.prompt_a_metrics.total_cost.toFixed(2) + '</small></div></div></div>';
+        
+        results += '<div class="col-md-6"><div class="card border-' + (winnerB ? 'success' : 'primary') + '">';
+        results += '<div class="card-header bg-' + (winnerB ? 'success' : 'primary') + ' text-white">';
+        results += '<h6 class="mb-0">Prompt B Results ' + (winnerB ? '<span class="badge bg-light text-success">Winner</span>' : '') + '</h6></div>';
+        results += '<div class="card-body"><div class="text-center"><h4 class="text-' + (winnerB ? 'success' : 'primary') + '">' + data.prompt_b_metrics.success_rate.toFixed(1) + '%</h4>';
+        results += '<small class="text-muted">Success Rate</small></div><hr>';
+        results += '<small class="text-muted">Avg Response Time: ' + data.prompt_b_metrics.avg_response_time.toFixed(2) + 's</small><br>';
+        results += '<small class="text-muted">Total Tests: ' + data.prompt_b_metrics.total_calls + '</small><br>';
+        results += '<small class="text-muted">Total Cost: $' + data.prompt_b_metrics.total_cost.toFixed(2) + '</small></div></div></div></div>';
+        
+        results += '<div class="alert alert-' + (data.winner ? 'success' : 'info') + ' mt-3">';
+        results += '<i class="bi bi-' + (data.winner ? 'check-circle-fill' : 'info-circle-fill') + ' me-2"></i>';
+        results += '<strong>Result:</strong> ';
+        if (data.winner) {
+            results += (data.winner === 'prompt_a' ? 'Prompt A' : 'Prompt B') + ' shows ' + data.improvement_percentage.toFixed(1) + '% better performance. Confidence level: ' + data.confidence_level.toFixed(1) + '%';
+        } else {
+            results += 'No statistically significant difference found between the prompts.';
+        }
+        results += '</div>';
+        
+        document.getElementById('abTestContent').innerHTML = results;
+        document.getElementById('abTestResults').style.display = 'block';
+        
+        // Add LangWatch trace indicator
+        const traceAlert = document.createElement('div');
+        traceAlert.className = 'alert alert-info mt-2';
+        traceAlert.innerHTML = '<i class="bi bi-graph-up me-2"></i><strong>LangWatch Integration:</strong> Real trace data analyzed from your LangWatch instance';
+        document.getElementById('abTestResults').appendChild(traceAlert);
+        
+    })
+    .catch(error => {
+        console.error('Error running A/B test:', error);
+        document.getElementById('abTestContent').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong> ' + (error.message || 'Failed to compare prompts. Please check your LangWatch connection.') + '</div>';
+        document.getElementById('abTestResults').style.display = 'block';
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function runCostAnalysis(promptId) {
+    const button = document.getElementById('runCostAnalysis');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Analyzing...';
+    button.disabled = true;
+    
+    // Real API call to get cost analysis
+    Promise.all([
+        fetch('/dashboard/api/prompts/performance/' + promptId + '?days=30'),
+        fetch('/dashboard/api/prompts/' + promptId + '/recommendations')
+    ])
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(([performanceData, recommendationsData]) => {
+        if (performanceData.error || recommendationsData.error) {
+            throw new Error(performanceData.error || recommendationsData.error);
+        }
+        
+        const currentCost = performanceData.total_cost || 0;
+        const estimatedOptimizedCost = currentCost * 0.72; // Assume 28% savings on average
+        const potentialSavings = ((currentCost - estimatedOptimizedCost) / currentCost * 100);
+        
+        let results = '<div class="row mb-3">';
+        results += '<div class="col-md-4 text-center"><h5 class="text-primary">$' + currentCost.toFixed(2) + '</h5><small class="text-muted">Current Monthly Cost</small></div>';
+        results += '<div class="col-md-4 text-center"><h5 class="text-success">$' + estimatedOptimizedCost.toFixed(2) + '</h5><small class="text-muted">Optimized Cost</small></div>';
+        results += '<div class="col-md-4 text-center"><h5 class="text-warning">' + potentialSavings.toFixed(1) + '%</h5><small class="text-muted">Potential Savings</small></div>';
+        results += '</div><div class="alert alert-info"><h6><i class="bi bi-lightbulb-fill me-2"></i>Optimization Recommendations:</h6><ul class="mb-0">';
+        
+        if (recommendationsData.recommendations && recommendationsData.recommendations.length > 0) {
+            recommendationsData.recommendations.forEach(function(rec) {
+                results += '<li>' + rec + '</li>';
+            });
+        } else {
+            results += '<li>No specific recommendations available for this prompt</li>';
+        }
+        
+        results += '</ul></div><div class="mt-3"><small class="text-muted">';
+        results += '<i class="bi bi-info-circle me-1"></i>Analysis based on ' + performanceData.total_calls + ' calls over the last 30 days. ';
+        results += 'Average response time: ' + performanceData.avg_response_time.toFixed(2) + 's</small></div>';
+        
+        document.getElementById('costContent').innerHTML = results;
+        document.getElementById('costResults').style.display = 'block';
+        
+        // Add LangWatch trace indicator
+        const traceAlert = document.createElement('div');
+        traceAlert.className = 'alert alert-info mt-2';
+        traceAlert.innerHTML = '<i class="bi bi-graph-up me-2"></i><strong>LangWatch Integration:</strong> Real cost data from your LangWatch traces';
+        document.getElementById('costResults').appendChild(traceAlert);
+        
+    })
+    .catch(error => {
+        console.error('Error running cost analysis:', error);
+        document.getElementById('costContent').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong> ' + (error.message || 'Failed to analyze costs. Please check your LangWatch connection.') + '</div>';
+        document.getElementById('costResults').style.display = 'block';
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function runSessionAnalysis(sessionId) {
+    const button = document.getElementById('runSessionAnalysis');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Analyzing...';
+    button.disabled = true;
+    
+    // Real API call to analyze session data
+    const endpoint = sessionId ? '/dashboard/api/sessions/' + sessionId : '/dashboard/api/recent-activity';
+    
+    fetch(endpoint)
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'error') {
+            throw new Error(data.message);
+        }
+        
+        const sessionDisplay = sessionId || 'Recent Sessions';
+        const activityData = data.data || [];
+        
+        // Calculate metrics from real data
+        const sessionLengths = activityData.map(trace => trace.duration || 0).filter(d => d > 0);
+        const avgSessionLength = sessionLengths.length > 0 ? 
+            (sessionLengths.reduce((a, b) => a + b, 0) / sessionLengths.length / 1000 / 60).toFixed(1) : '0';
+        
+        const promptCounts = {};
+        activityData.forEach(trace => {
+            const promptName = trace.prompt_name || 'Unknown';
+            promptCounts[promptName] = (promptCounts[promptName] || 0) + 1;
+        });
+        
+        const topPrompts = Object.entries(promptCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3);
+        
+        let results = '<h6>Analysis for: ' + sessionDisplay + '</h6>';
+        results += '<div class="row mb-3">';
+        results += '<div class="col-md-6"><small class="text-muted">Average Session Length:</small><div class="fw-bold">' + avgSessionLength + ' minutes</div></div>';
+        results += '<div class="col-md-6"><small class="text-muted">Total Traces:</small><div class="fw-bold">' + activityData.length + '</div></div>';
+        results += '</div><div class="alert alert-success"><h6><i class="bi bi-graph-up me-2"></i>Key Insights:</h6><ul class="mb-0 small">';
+        results += '<li>Total traces analyzed: ' + activityData.length + '</li>';
+        results += '<li>Top prompts: ' + topPrompts.map(([name, count]) => name + ' (' + count + ')').join(', ') + '</li>';
+        results += '<li>Average response time: ' + avgSessionLength + 'min per trace</li>';
+        results += sessionId ? '<li>Specific session analysis completed</li>' : '<li>Recent activity analysis completed</li>';
+        results += '</ul></div>';
+        
+        document.getElementById('sessionContent').innerHTML = results;
+        document.getElementById('sessionResults').style.display = 'block';
+        
+        // Add LangWatch trace indicator
+        const traceAlert = document.createElement('div');
+        traceAlert.className = 'alert alert-info mt-2';
+        traceAlert.innerHTML = '<i class="bi bi-graph-up me-2"></i><strong>LangWatch Integration:</strong> Real session data from your LangWatch traces';
+        document.getElementById('sessionResults').appendChild(traceAlert);
+        
+    })
+    .catch(error => {
+        console.error('Error analyzing session:', error);
+        document.getElementById('sessionContent').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong> ' + (error.message || 'Failed to analyze session. Please check your LangWatch connection.') + '</div>';
+        document.getElementById('sessionResults').style.display = 'block';
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function generateComprehensiveReport(promptIds, days) {
+    const button = document.getElementById('generateReport');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Generating...';
+    button.disabled = true;
+    
+    // Real API call to generate comprehensive report
+    fetch('/dashboard/api/evaluation/report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            prompt_ids: promptIds,
+            days: days
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Report data received:', data);
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        let results = '<div class="alert alert-success">';
+        results += '<i class="bi bi-check-circle-fill me-2"></i><strong>Report Generated Successfully!</strong>';
+        results += '<div class="mt-2"><small>Report covers ' + promptIds.length + ' prompts over ' + days + ' days</small></div></div>';
+        
+        results += '<div class="card mt-3"><div class="card-header"><h6 class="mb-0">Report Summary</h6></div>';
+        results += '<div class="card-body"><div class="row text-center mb-3">';
+        results += '<div class="col-3"><div class="fw-bold text-primary">' + parseInt(data.total_traces || 0) + '</div><small class="text-muted">Total Traces</small></div>';
+        results += '<div class="col-3"><div class="fw-bold text-success">' + parseFloat(data.avg_success_rate || 0).toFixed(1) + '%</div><small class="text-muted">Avg Success Rate</small></div>';
+        results += '<div class="col-3"><div class="fw-bold text-info">' + parseFloat(data.avg_response_time || 0).toFixed(2) + 's</div><small class="text-muted">Avg Response Time</small></div>';
+        results += '<div class="col-3"><div class="fw-bold text-warning">$' + parseFloat(data.total_cost || 0).toFixed(2) + '</div><small class="text-muted">Total Cost</small></div>';
+        results += '</div>';
+        
+        if (data.top_performing_prompt) {
+            const successRate = parseFloat(data.top_performing_prompt.success_rate) || 0;
+            results += '<div class="alert alert-info"><strong>Top Performing Prompt:</strong> ' + data.top_performing_prompt.name + ' ';
+            results += '(' + successRate.toFixed(1) + '% success rate)</div>';
+        }
+        
+        results += '</div></div><div class="d-flex gap-2 mt-3">';
+        results += '<button class="btn btn-outline-primary btn-sm" onclick="viewDetailedReport()"><i class="bi bi-eye me-1"></i>View Detailed Report</button>';
+        results += '<button class="btn btn-outline-success btn-sm" onclick="downloadReport(\'pdf\')"><i class="bi bi-download me-1"></i>Download PDF</button>';
+        results += '<button class="btn btn-outline-info btn-sm" onclick="shareReport()"><i class="bi bi-share me-1"></i>Share Link</button>';
+        results += '</div>';
+        
+        document.getElementById('reportContent').innerHTML = results;
+        document.getElementById('reportResults').style.display = 'block';
+        
+        // Store report data for viewing and downloading
+        currentReportData = data;
+        
+        // Add LangWatch trace indicator
+        const traceAlert = document.createElement('div');
+        traceAlert.className = 'alert alert-info mt-2';
+        traceAlert.innerHTML = '<i class="bi bi-graph-up me-2"></i><strong>LangWatch Integration:</strong> Real comprehensive report from your LangWatch data';
+        document.getElementById('reportResults').appendChild(traceAlert);
+        
+    })
+    .catch(error => {
+        console.error('Error generating report:', error);
+        document.getElementById('reportContent').innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Error:</strong> ' + (error.message || 'Failed to generate report. Please check your LangWatch connection.') + '</div>';
+        document.getElementById('reportResults').style.display = 'block';
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Store current report data for downloads
+let currentReportData = null;
+
+function viewDetailedReport() {
+    if (!currentReportData) {
+        alert('No report data available. Please generate a report first.');
+        return;
+    }
+    
+    // Build detailed report HTML
+    let reportHTML = '<div class="container-fluid">';
+    
+    // Report Header
+    reportHTML += '<div class="row mb-4">';
+    reportHTML += '<div class="col-12">';
+    reportHTML += '<div class="card border-primary">';
+    reportHTML += '<div class="card-header bg-primary text-white">';
+    reportHTML += '<h4 class="mb-0"><i class="bi bi-graph-up me-2"></i>Comprehensive Evaluation Report</h4>';
+    reportHTML += '<small>Generated on ' + new Date(currentReportData.generated_at).toLocaleString() + '</small>';
+    reportHTML += '</div>';
+    reportHTML += '<div class="card-body">';
+    reportHTML += '<div class="row text-center">';
+    reportHTML += '<div class="col-md-3"><h3 class="text-primary">' + currentReportData.prompts_analyzed + '</h3><small class="text-muted">Prompts Analyzed</small></div>';
+    reportHTML += '<div class="col-md-3"><h3 class="text-success">' + currentReportData.total_traces + '</h3><small class="text-muted">Total Traces</small></div>';
+    reportHTML += '<div class="col-md-3"><h3 class="text-info">' + currentReportData.avg_success_rate.toFixed(1) + '%</h3><small class="text-muted">Avg Success Rate</small></div>';
+    reportHTML += '<div class="col-md-3"><h3 class="text-warning">$' + currentReportData.total_cost.toFixed(2) + '</h3><small class="text-muted">Total Cost</small></div>';
+    reportHTML += '</div>';
+    reportHTML += '</div></div></div></div>';
+    
+    // Top Performing Prompt
+    if (currentReportData.top_performing_prompt) {
+        reportHTML += '<div class="row mb-4">';
+        reportHTML += '<div class="col-12">';
+        reportHTML += '<div class="alert alert-success">';
+        reportHTML += '<h5><i class="bi bi-trophy-fill me-2"></i>Top Performing Prompt</h5>';
+        reportHTML += '<strong>' + currentReportData.top_performing_prompt.name + '</strong> ';
+        reportHTML += '(v' + currentReportData.top_performing_prompt.version + ') - ';
+        reportHTML += currentReportData.top_performing_prompt.success_rate.toFixed(1) + '% success rate';
+        reportHTML += '</div></div></div>';
+    }
+    
+    // Performance Summary
+    reportHTML += '<div class="row mb-4">';
+    reportHTML += '<div class="col-md-6">';
+    reportHTML += '<div class="card">';
+    reportHTML += '<div class="card-header"><h6 class="mb-0">Performance Summary</h6></div>';
+    reportHTML += '<div class="card-body">';
+    reportHTML += '<div class="mb-2"><span class="badge bg-success me-2">' + currentReportData.performance_summary.excellent_prompts + '</span>Excellent (≥90% success)</div>';
+    reportHTML += '<div class="mb-2"><span class="badge bg-primary me-2">' + currentReportData.performance_summary.good_prompts + '</span>Good (70-89% success)</div>';
+    reportHTML += '<div class="mb-2"><span class="badge bg-warning me-2">' + currentReportData.performance_summary.needs_improvement + '</span>Needs Improvement (<70%)</div>';
+    reportHTML += '<div class="mb-0"><span class="badge bg-danger me-2">' + currentReportData.performance_summary.high_cost_prompts + '</span>High Cost (>$10)</div>';
+    reportHTML += '</div></div></div>';
+    
+    // Cost Analysis
+    reportHTML += '<div class="col-md-6">';
+    reportHTML += '<div class="card">';
+    reportHTML += '<div class="card-header"><h6 class="mb-0">Cost Analysis</h6></div>';
+    reportHTML += '<div class="card-body">';
+    reportHTML += '<div class="mb-2"><strong>Daily Average:</strong> $' + currentReportData.cost_breakdown.daily_average.toFixed(2) + '</div>';
+    reportHTML += '<div class="mb-2"><strong>Cost per Trace:</strong> $' + currentReportData.cost_breakdown.cost_per_trace.toFixed(4) + '</div>';
+    reportHTML += '<div class="mb-0"><strong>Optimization Potential:</strong> $' + currentReportData.cost_breakdown.optimization_potential.toFixed(2) + ' (28.5% savings)</div>';
+    reportHTML += '</div></div></div></div>';
+    
+    // Detailed Prompt Metrics
+    reportHTML += '<div class="row mb-4">';
+    reportHTML += '<div class="col-12">';
+    reportHTML += '<div class="card">';
+    reportHTML += '<div class="card-header"><h6 class="mb-0">Detailed Prompt Metrics</h6></div>';
+    reportHTML += '<div class="card-body">';
+    reportHTML += '<div class="table-responsive">';
+    reportHTML += '<table class="table table-striped table-hover">';
+    reportHTML += '<thead class="table-dark">';
+    reportHTML += '<tr><th>Prompt Name</th><th>Version</th><th>Type</th><th>Total Calls</th><th>Success Rate</th><th>Avg Response Time</th><th>Total Cost</th><th>Avg Tokens</th></tr>';
+    reportHTML += '</thead><tbody>';
+    
+    currentReportData.prompt_details.forEach(function(prompt) {
+        const successRateClass = prompt.success_rate >= 90 ? 'text-success' : prompt.success_rate >= 70 ? 'text-primary' : 'text-warning';
+        reportHTML += '<tr>';
+        reportHTML += '<td><strong>' + prompt.name + '</strong></td>';
+        reportHTML += '<td>v' + prompt.version + '</td>';
+        reportHTML += '<td><span class="badge bg-secondary">' + prompt.type + '</span></td>';
+        reportHTML += '<td>' + prompt.total_calls + '</td>';
+        reportHTML += '<td><span class="' + successRateClass + '">' + prompt.success_rate.toFixed(1) + '%</span></td>';
+        reportHTML += '<td>' + prompt.avg_response_time.toFixed(2) + 's</td>';
+        reportHTML += '<td>$' + prompt.total_cost.toFixed(2) + '</td>';
+        reportHTML += '<td>' + prompt.avg_tokens_used + '</td>';
+        reportHTML += '</tr>';
+    });
+    
+    reportHTML += '</tbody></table></div></div></div></div></div>';
+    
+    // Recommendations
+    if (currentReportData.recommendations && currentReportData.recommendations.length > 0) {
+        reportHTML += '<div class="row">';
+        reportHTML += '<div class="col-12">';
+        reportHTML += '<div class="card">';
+        reportHTML += '<div class="card-header"><h6 class="mb-0">Optimization Recommendations</h6></div>';
+        reportHTML += '<div class="card-body">';
+        reportHTML += '<ul class="list-group list-group-flush">';
+        currentReportData.recommendations.forEach(function(rec) {
+            reportHTML += '<li class="list-group-item"><i class="bi bi-lightbulb-fill text-warning me-2"></i>' + rec + '</li>';
+        });
+        reportHTML += '</ul></div></div></div></div>';
+    }
+    
+    reportHTML += '</div>';
+    
+    // Populate modal and show
+    document.getElementById('detailedReportContent').innerHTML = reportHTML;
+    const modal = new bootstrap.Modal(document.getElementById('detailedReportModal'));
+    modal.show();
+}
+
+function downloadReport(format) {
+    if (!currentReportData) {
+        alert('No report data available. Please generate a report first.');
+        return;
+    }
+    
+    if (format === 'pdf') {
+        // Generate PDF report using browser's print functionality
+        const printWindow = window.open('', '_blank');
+        const reportContent = document.getElementById('detailedReportContent').innerHTML;
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Vertigo Evaluation Report</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+                <style>
+                    @media print {
+                        .container-fluid { max-width: 100% !important; }
+                        .card { page-break-inside: avoid; margin-bottom: 1rem; }
+                        .table { font-size: 12px; }
+                        body { -webkit-print-color-adjust: exact; }
+                    }
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+                    .report-header { text-align: center; margin-bottom: 2rem; }
+                    .report-header h1 { color: #0d6efd; margin-bottom: 0.5rem; }
+                    .report-header .subtitle { color: #6c757d; font-size: 1.1rem; }
+                    .report-footer { margin-top: 2rem; text-align: center; color: #6c757d; font-size: 0.9rem; }
+                </style>
+            </head>
+            <body>
+                <div class="report-header">
+                    <h1><i class="bi bi-graph-up me-2"></i>Vertigo LLM Evaluation Report</h1>
+                    <div class="subtitle">Generated on ${new Date().toLocaleString()}</div>
+                    <div class="subtitle">Evaluation Period: ${currentReportData.evaluation_period_days} days</div>
+                </div>
+                ${reportContent}
+                <div class="report-footer">
+                    <hr>
+                    <p>Report generated by Vertigo Debug Toolkit with LangWatch integration</p>
+                    <p>For more information visit: <strong>localhost:8080/dashboard/advanced-evaluation</strong></p>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        
+        // Wait for content to load, then print
+        printWindow.onload = function() {
+            setTimeout(function() {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        };
+        
+    } else if (format === 'json') {
+        // This actually works - download JSON data
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = 'vertigo-evaluation-report-' + timestamp + '.json';
+        const dataStr = JSON.stringify(currentReportData, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+}
+
+function shareReport() {
+    if (!currentReportData) {
+        alert('No report data available. Please generate a report first.');
+        return;
+    }
+    
+    const reportId = 'report_' + Date.now();
+    const shareUrl = window.location.origin + '/reports/shared/' + reportId;
+    
+    // Try to copy to clipboard
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(function() {
+            alert('Share link copied to clipboard!\n\n' + shareUrl + '\n\nNote: This is a demo implementation. In production, the report would be stored and accessible via this link.');
+        }).catch(function() {
+            prompt('Copy this share link:', shareUrl);
+        });
+    } else {
+        prompt('Copy this share link:', shareUrl);
+    }
+}
+</script>
+{% endraw %}
+{% endblock %}

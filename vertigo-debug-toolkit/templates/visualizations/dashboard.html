@@ -1,0 +1,719 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Visualizations - Vertigo Debug Toolkit{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/visualizations.css') }}">
+<style>
+.chart-container {
+    position: relative;
+    height: 100%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.refresh-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.refresh-indicator.active {
+    opacity: 1;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-gap: 16px;
+    padding: 20px;
+}
+
+.grid-item {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.gauge-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.gauge-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.status-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #dc2626;
+}
+
+.status-indicator.connected {
+    background-color: #059669;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.error-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.chart-metadata {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+/* Responsive grid layouts */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(8, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(4, 1fr);
+        padding: 10px;
+    }
+    
+    .chart-container {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">📊 Advanced Visualizations</h1>
+                    <p class="text-muted mb-0">Interactive dashboard with real-time data visualization</p>
+                </div>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshAllCharts()">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh All
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="toggleAutoRefresh()">
+                        <i class="bi bi-play-circle me-1"></i>Auto Refresh
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="exportDashboard()">
+                        <i class="bi bi-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebSocket Status Banner -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="websocket-status" class="alert alert-info d-flex align-items-center">
+                <div class="status-indicator" id="ws-indicator"></div>
+                <div class="ms-2">
+                    <strong>Real-time Updates:</strong> 
+                    <span id="ws-status-text">Connecting...</span>
+                    <small class="ms-2 text-muted" id="last-update">No updates yet</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div id="dashboard-grid" class="dashboard-grid">
+        <!-- Charts will be dynamically inserted here -->
+    </div>
+</div>
+
+<!-- Chart Templates -->
+<template id="chart-template">
+    <div class="grid-item chart-container" data-chart-type="" style="grid-column: span 6; grid-row: span 4;">
+        <div class="chart-header">
+            <h5 class="chart-title"></h5>
+            <div class="chart-actions">
+                <button class="btn btn-sm btn-outline-secondary refresh-btn" onclick="refreshChart(this)">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <div class="refresh-indicator"></div>
+            </div>
+        </div>
+        <canvas class="chart-canvas" style="height: 100%; width: 100%;"></canvas>
+        <div class="chart-metadata"></div>
+        <div class="loading-overlay" style="display: none;">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    </div>
+</template>
+
+<template id="gauge-template">
+    <div class="grid-item gauge-container" data-chart-type="" style="grid-column: span 2; grid-row: span 3;">
+        <div class="chart-header">
+            <h5 class="chart-title"></h5>
+            <div class="refresh-indicator"></div>
+        </div>
+        <canvas class="gauge-canvas" style="width: 120px; height: 120px;"></canvas>
+        <div class="gauge-value"></div>
+        <div class="chart-metadata"></div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/advanced-charts.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let socket = null;
+    let charts = {};
+    let autoRefreshEnabled = false;
+    let refreshIntervals = {};
+    
+    // Chart configuration
+    const chartConfigs = {
+        performance_timeline: {
+            title: 'Performance Timeline',
+            gridColumn: 'span 8',
+            gridRow: 'span 6',
+            refreshInterval: 30
+        },
+        realtime_gauges: {
+            title: 'Real-time Metrics',
+            type: 'gauges',
+            gridColumn: 'span 4',
+            gridRow: 'span 6',
+            refreshInterval: 5
+        },
+        cost_breakdown: {
+            title: 'Cost Breakdown',
+            gridColumn: 'span 4',
+            gridRow: 'span 5',
+            refreshInterval: 300
+        },
+        api_performance: {
+            title: 'API Performance',
+            gridColumn: 'span 6',
+            gridRow: 'span 4',
+            refreshInterval: 60
+        },
+        error_distribution: {
+            title: 'Error Distribution',
+            gridColumn: 'span 6',
+            gridRow: 'span 4',
+            refreshInterval: 120
+        },
+        user_activity: {
+            title: 'User Activity',
+            gridColumn: 'span 8',
+            gridRow: 'span 5',
+            refreshInterval: 180
+        },
+        prompt_heatmap: {
+            title: 'Prompt Performance',
+            gridColumn: 'span 4',
+            gridRow: 'span 7',
+            refreshInterval: 240
+        }
+    };
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
+    
+    // Initialize dashboard
+    initializeDashboard();
+    
+    function initializeWebSocket() {
+        try {
+            socket = io({
+                transports: ['websocket', 'polling']
+            });
+            
+            socket.on('connect', function() {
+                updateWebSocketStatus('connected', 'Connected - Real-time updates active');
+            });
+            
+            socket.on('disconnect', function() {
+                updateWebSocketStatus('disconnected', 'Disconnected - Polling for updates');
+            });
+            
+            socket.on('connect_error', function(error) {
+                updateWebSocketStatus('error', 'Connection error - Manual refresh required');
+            });
+            
+            // Handle visualization updates
+            socket.on('visualization_update', function(data) {
+                if (data.chart_type && charts[data.chart_type]) {
+                    updateChart(data.chart_type, data.data);
+                    updateLastUpdateTime();
+                }
+            });
+            
+            socket.on('dashboard_refresh', function(data) {
+                if (data.components.includes('visualizations') || data.components.includes('all')) {
+                    refreshAllCharts();
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error initializing WebSocket:', error);
+            updateWebSocketStatus('error', 'WebSocket unavailable');
+        }
+    }
+    
+    function updateWebSocketStatus(status, message) {
+        const indicator = document.getElementById('ws-indicator');
+        const statusText = document.getElementById('ws-status-text');
+        const statusAlert = document.getElementById('websocket-status');
+        
+        indicator.className = 'status-indicator';
+        statusText.textContent = message;
+        
+        switch (status) {
+            case 'connected':
+                indicator.classList.add('connected');
+                statusAlert.className = 'alert alert-success d-flex align-items-center';
+                break;
+            case 'disconnected':
+                statusAlert.className = 'alert alert-warning d-flex align-items-center';
+                break;
+            case 'error':
+                statusAlert.className = 'alert alert-danger d-flex align-items-center';
+                break;
+        }
+    }
+    
+    function updateLastUpdateTime() {
+        const lastUpdate = document.getElementById('last-update');
+        lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+    }
+    
+    function initializeDashboard() {
+        const grid = document.getElementById('dashboard-grid');
+        
+        // Create chart containers
+        Object.keys(chartConfigs).forEach(chartType => {
+            const config = chartConfigs[chartType];
+            
+            if (config.type === 'gauges') {
+                createGaugeGroup(grid, chartType, config);
+            } else {
+                createChartContainer(grid, chartType, config);
+            }
+        });
+        
+        // Load initial chart data
+        loadAllCharts();
+    }
+    
+    function createChartContainer(grid, chartType, config) {
+        const template = document.getElementById('chart-template');
+        const clone = template.content.cloneNode(true);
+        
+        const container = clone.querySelector('.grid-item');
+        container.setAttribute('data-chart-type', chartType);
+        container.style.gridColumn = config.gridColumn;
+        container.style.gridRow = config.gridRow;
+        
+        const title = clone.querySelector('.chart-title');
+        title.textContent = config.title;
+        
+        const canvas = clone.querySelector('.chart-canvas');
+        canvas.id = `chart-${chartType}`;
+        
+        grid.appendChild(clone);
+    }
+    
+    function createGaugeGroup(grid, chartType, config) {
+        const gaugeTypes = ['cpu', 'memory', 'cache', 'response_time'];
+        const titles = ['CPU Usage', 'Memory Usage', 'Cache Hit Ratio', 'Response Time'];
+        
+        gaugeTypes.forEach((gaugeType, index) => {
+            const template = document.getElementById('gauge-template');
+            const clone = template.content.cloneNode(true);
+            
+            const container = clone.querySelector('.grid-item');
+            container.setAttribute('data-chart-type', `${chartType}_${gaugeType}`);
+            container.style.gridColumn = 'span 2';
+            container.style.gridRow = 'span 3';
+            
+            const title = clone.querySelector('.chart-title');
+            title.textContent = titles[index];
+            
+            const canvas = clone.querySelector('.gauge-canvas');
+            canvas.id = `gauge-${gaugeType}`;
+            
+            grid.appendChild(clone);
+        });
+    }
+    
+    async function loadAllCharts() {
+        const loadPromises = Object.keys(chartConfigs).map(async (chartType) => {
+            try {
+                await loadChart(chartType);
+            } catch (error) {
+                console.error(`Error loading chart ${chartType}:`, error);
+                showChartError(chartType, error.message);
+            }
+        });
+        
+        await Promise.all(loadPromises);
+        
+        // Start auto-refresh if enabled
+        if (autoRefreshEnabled) {
+            startAutoRefresh();
+        }
+    }
+    
+    async function loadChart(chartType) {
+        showLoading(chartType);
+        
+        try {
+            const response = await fetch(`/viz/api/chart/${chartType}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                if (chartType === 'realtime_gauges') {
+                    updateGauges(result.data);
+                } else {
+                    createChart(chartType, result.data);
+                }
+                showRefreshIndicator(chartType);
+            } else {
+                throw new Error(result.error || 'Failed to load chart');
+            }
+        } catch (error) {
+            showChartError(chartType, error.message);
+        } finally {
+            hideLoading(chartType);
+        }
+    }
+    
+    function createChart(chartType, data) {
+        const canvas = document.getElementById(`chart-${chartType}`);
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart if it exists
+        if (charts[chartType]) {
+            charts[chartType].destroy();
+        }
+        
+        const chartConfig = {
+            type: data.config.chart_type,
+            data: {
+                labels: data.labels,
+                datasets: data.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: data.config.title
+                    },
+                    legend: {
+                        position: data.config.legend_position || 'top'
+                    }
+                },
+                animation: {
+                    duration: data.config.animation ? 750 : 0
+                }
+            }
+        };
+        
+        // Add specific configurations based on chart type
+        switch (data.config.chart_type) {
+            case 'line':
+                chartConfig.options.scales = {
+                    x: { title: { display: true, text: data.config.x_axis_label } },
+                    y: { title: { display: true, text: data.config.y_axis_label } }
+                };
+                break;
+            case 'horizontalBar':
+                chartConfig.type = 'bar';
+                chartConfig.options.indexAxis = 'y';
+                break;
+            case 'radar':
+                chartConfig.options.scales = {
+                    r: {
+                        beginAtZero: true
+                    }
+                };
+                break;
+        }
+        
+        charts[chartType] = new Chart(ctx, chartConfig);
+        
+        // Update metadata
+        updateChartMetadata(chartType, data.metadata);
+    }
+    
+    function updateGauges(gaugeData) {
+        Object.keys(gaugeData).forEach(gaugeType => {
+            const gauge = gaugeData[gaugeType];
+            const canvas = document.getElementById(`gauge-${gaugeType}`);
+            
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                
+                // Destroy existing chart
+                const existingChart = charts[`realtime_gauges_${gaugeType}`];
+                if (existingChart) {
+                    existingChart.destroy();
+                }
+                
+                // Create gauge chart
+                charts[`realtime_gauges_${gaugeType}`] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: gauge.datasets[0].data,
+                            backgroundColor: gauge.datasets[0].backgroundColor,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        cutout: '80%',
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+                
+                // Update gauge value display
+                const container = canvas.closest('.gauge-container');
+                const valueElement = container.querySelector('.gauge-value');
+                if (valueElement && gauge.metadata) {
+                    valueElement.textContent = `${gauge.metadata.current_value.toFixed(1)}${gauge.metadata.unit}`;
+                }
+            }
+        });
+    }
+    
+    function updateChart(chartType, data) {
+        if (charts[chartType]) {
+            charts[chartType].data = {
+                labels: data.labels,
+                datasets: data.datasets
+            };
+            charts[chartType].update();
+            updateChartMetadata(chartType, data.metadata);
+        }
+    }
+    
+    function updateChartMetadata(chartType, metadata) {
+        if (!metadata) return;
+        
+        const container = document.querySelector(`[data-chart-type="${chartType}"]`);
+        if (container) {
+            const metadataElement = container.querySelector('.chart-metadata');
+            if (metadataElement) {
+                metadataElement.textContent = `Updated: ${new Date(metadata.generated_at).toLocaleTimeString()}`;
+            }
+        }
+    }
+    
+    function showLoading(chartType) {
+        const container = document.querySelector(`[data-chart-type="${chartType}"]`);
+        if (container) {
+            const loading = container.querySelector('.loading-overlay');
+            if (loading) loading.style.display = 'flex';
+        }
+    }
+    
+    function hideLoading(chartType) {
+        const container = document.querySelector(`[data-chart-type="${chartType}"]`);
+        if (container) {
+            const loading = container.querySelector('.loading-overlay');
+            if (loading) loading.style.display = 'none';
+        }
+    }
+    
+    function showChartError(chartType, error) {
+        const container = document.querySelector(`[data-chart-type="${chartType}"]`);
+        if (container) {
+            const canvas = container.querySelector('canvas');
+            if (canvas) {
+                canvas.style.display = 'none';
+            }
+            
+            // Create error display
+            let errorDiv = container.querySelector('.error-state');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'error-state';
+                container.appendChild(errorDiv);
+            }
+            
+            errorDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle fs-1 mb-3"></i>
+                <p class="mb-2">Failed to load visualization</p>
+                <small class="text-muted">${error}</small>
+            `;
+        }
+    }
+    
+    function showRefreshIndicator(chartType) {
+        const container = document.querySelector(`[data-chart-type="${chartType}"]`);
+        if (container) {
+            const indicator = container.querySelector('.refresh-indicator');
+            if (indicator) {
+                indicator.classList.add('active');
+                setTimeout(() => indicator.classList.remove('active'), 2000);
+            }
+        }
+    }
+    
+    function startAutoRefresh() {
+        Object.keys(chartConfigs).forEach(chartType => {
+            const config = chartConfigs[chartType];
+            if (config.refreshInterval) {
+                refreshIntervals[chartType] = setInterval(() => {
+                    if (autoRefreshEnabled) {
+                        loadChart(chartType);
+                    }
+                }, config.refreshInterval * 1000);
+            }
+        });
+    }
+    
+    function stopAutoRefresh() {
+        Object.keys(refreshIntervals).forEach(chartType => {
+            clearInterval(refreshIntervals[chartType]);
+        });
+        refreshIntervals = {};
+    }
+    
+    // Global functions
+    window.refreshAllCharts = async function() {
+        await loadAllCharts();
+        updateLastUpdateTime();
+    };
+    
+    window.refreshChart = function(button) {
+        const container = button.closest('[data-chart-type]');
+        const chartType = container.getAttribute('data-chart-type');
+        loadChart(chartType);
+    };
+    
+    window.toggleAutoRefresh = function() {
+        autoRefreshEnabled = !autoRefreshEnabled;
+        const button = event.target.closest('button');
+        
+        if (autoRefreshEnabled) {
+            button.innerHTML = '<i class="bi bi-pause-circle me-1"></i>Auto Refresh';
+            button.classList.remove('btn-outline-info');
+            button.classList.add('btn-info');
+            startAutoRefresh();
+        } else {
+            button.innerHTML = '<i class="bi bi-play-circle me-1"></i>Auto Refresh';
+            button.classList.remove('btn-info');
+            button.classList.add('btn-outline-info');
+            stopAutoRefresh();
+        }
+    };
+    
+    window.exportDashboard = function() {
+        // Create export data
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            charts: Object.keys(charts).map(chartType => ({
+                type: chartType,
+                config: chartConfigs[chartType],
+                data: charts[chartType] ? {
+                    labels: charts[chartType].data.labels,
+                    datasets: charts[chartType].data.datasets
+                } : null
+            }))
+        };
+        
+        // Download as JSON
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+            type: 'application/json'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vertigo-dashboard-export-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+});
+</script>
+{% endblock %}

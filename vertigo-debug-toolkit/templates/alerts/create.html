@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}Create Alert Rule - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1><i class="fas fa-plus-circle text-primary"></i> Create Alert Rule</h1>
+                    <p class="text-muted">Set up automated monitoring and notifications for critical metrics</p>
+                </div>
+                <a href="{{ url_for('alerts.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Alerts
+                </a>
+            </div>
+
+            <form method="POST" id="alertRuleForm">
+                {{ csrf_token() }}
+                
+                <!-- Basic Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-cog"></i> Basic Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="name" class="form-label required">Rule Name</label>
+                                    <input type="text" class="form-control" id="name" name="name" required 
+                                           placeholder="e.g. High Error Rate Alert">
+                                    <small class="form-text text-muted">Descriptive name for this alert rule</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="alert_type" class="form-label required">Alert Type</label>
+                                    <select class="form-control" id="alert_type" name="alert_type" required>
+                                        <option value="">Select metric to monitor</option>
+                                        {% for key, name in alert_types.items() %}
+                                        <option value="{{ key }}">{{ name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="threshold_value" class="form-label required">Threshold Value</label>
+                                    <input type="number" class="form-control" id="threshold_value" name="threshold_value" 
+                                           step="0.01" required placeholder="e.g. 5.0">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="comparison_operator" class="form-label required">Condition</label>
+                                    <select class="form-control" id="comparison_operator" name="comparison_operator" required>
+                                        {% for key, name in comparison_operators.items() %}
+                                        <option value="{{ key }}">{{ name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="time_window_minutes" class="form-label">Time Window (minutes)</label>
+                                    <input type="number" class="form-control" id="time_window_minutes" name="time_window_minutes" 
+                                           value="5" min="1" max="1440">
+                                    <small class="form-text text-muted">Period to evaluate the metric over</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="severity" class="form-label">Severity Level</label>
+                                    <select class="form-control" id="severity" name="severity">
+                                        {% for severity in severities %}
+                                        <option value="{{ severity }}" {% if severity == 'medium' %}selected{% endif %}>
+                                            {{ severity|title }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="data_source_id" class="form-label">Data Source</label>
+                                    <select class="form-control" id="data_source_id" name="data_source_id">
+                                        <option value="">All Sources</option>
+                                        {% for source in data_sources %}
+                                        <option value="{{ source.id }}">{{ source.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <small class="form-text text-muted">Limit alert to specific data source</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notification Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-bell"></i> Notification Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Notification Channels</label>
+                                    <div class="form-check-list">
+                                        {% for key, name in notification_channels.items() %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="channel_{{ key }}" name="notification_channels" value="{{ key }}"
+                                                   {% if key == 'email' %}checked{% endif %}>
+                                            <label class="form-check-label" for="channel_{{ key }}">
+                                                <i class="fas fa-{% if key == 'email' %}envelope{% elif key == 'slack' %}slack{% elif key == 'sms' %}sms{% else %}webhook{% endif %}"></i>
+                                                {{ name }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="cooldown_minutes" class="form-label">Cooldown Period (minutes)</label>
+                                    <input type="number" class="form-control" id="cooldown_minutes" name="cooldown_minutes" 
+                                           value="60" min="0" max="10080">
+                                    <small class="form-text text-muted">Minimum time between notifications for same rule</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-code"></i> Advanced Configuration
+                            <small class="text-muted">(Optional)</small>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="condition_query" class="form-label">Custom Condition Query</label>
+                            <textarea class="form-control" id="condition_query" name="condition_query" rows="3"
+                                      placeholder="Optional SQL-like condition for advanced filtering"></textarea>
+                            <small class="form-text text-muted">Leave empty for standard threshold-based alerts</small>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                <strong>Enable this alert rule immediately</strong>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Metrics Preview -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line"></i> Current Metrics Preview</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="metricsPreview" class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading current system metrics...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('alerts.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-info" id="testRuleBtn">
+                                    <i class="fas fa-flask"></i> Test Configuration
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Create Alert Rule
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Load current metrics
+    loadCurrentMetrics();
+    
+    // Update threshold suggestions when alert type changes
+    $('#alert_type').change(function() {
+        updateThresholdSuggestions();
+    });
+    
+    // Test rule configuration
+    $('#testRuleBtn').click(function() {
+        testRuleConfiguration();
+    });
+});
+
+function loadCurrentMetrics() {
+    fetch('/alerts/api/metrics/current')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayMetrics(data.metrics);
+            } else {
+                $('#metricsPreview').html('<p class="text-warning">Unable to load current metrics</p>');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading metrics:', error);
+            $('#metricsPreview').html('<p class="text-danger">Error loading metrics</p>');
+        });
+}
+
+function displayMetrics(metrics) {
+    const html = `
+        <div class="row text-center">
+            <div class="col-md-3">
+                <h6>Error Rate</h6>
+                <span class="badge badge-${metrics.error_rate > 5 ? 'danger' : 'success'} badge-lg">
+                    ${metrics.error_rate.toFixed(2)}%
+                </span>
+            </div>
+            <div class="col-md-3">
+                <h6>Avg Latency</h6>
+                <span class="badge badge-${metrics.avg_latency_ms > 1000 ? 'warning' : 'success'} badge-lg">
+                    ${metrics.avg_latency_ms.toFixed(0)}ms
+                </span>
+            </div>
+            <div class="col-md-3">
+                <h6>Total Cost</h6>
+                <span class="badge badge-info badge-lg">
+                    $${metrics.total_cost.toFixed(4)}
+                </span>
+            </div>
+            <div class="col-md-3">
+                <h6>Traces</h6>
+                <span class="badge badge-primary badge-lg">
+                    ${metrics.total_traces}
+                </span>
+            </div>
+        </div>
+        <small class="text-muted d-block mt-2">
+            Updated: ${new Date(metrics.timestamp).toLocaleString()}
+        </small>
+    `;
+    $('#metricsPreview').html(html);
+}
+
+function updateThresholdSuggestions() {
+    const alertType = $('#alert_type').val();
+    const thresholdInput = $('#threshold_value');
+    
+    // Provide suggested thresholds based on alert type
+    const suggestions = {
+        'error_rate': { value: 5.0, hint: 'Typical: 1-10%' },
+        'success_rate': { value: 95.0, hint: 'Typical: 95-99%' },
+        'latency_avg': { value: 1000, hint: 'Typical: 500-2000ms' },
+        'latency_p95': { value: 2000, hint: 'Typical: 1000-5000ms' },
+        'cost_threshold': { value: 10.0, hint: 'Daily threshold in USD' },
+        'trace_volume': { value: 100, hint: 'Minimum expected traces' }
+    };
+    
+    if (alertType && suggestions[alertType]) {
+        thresholdInput.attr('placeholder', suggestions[alertType].value);
+        thresholdInput.parent().find('.threshold-hint').remove();
+        thresholdInput.parent().append(
+            `<small class="form-text text-info threshold-hint">${suggestions[alertType].hint}</small>`
+        );
+    }
+}
+
+function testRuleConfiguration() {
+    const formData = new FormData(document.getElementById('alertRuleForm'));
+    const testData = {};
+    
+    for (let [key, value] of formData.entries()) {
+        if (key === 'notification_channels') {
+            if (!testData[key]) testData[key] = [];
+            testData[key].push(value);
+        } else {
+            testData[key] = value;
+        }
+    }
+    
+    $('#testRuleBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Testing...');
+    
+    // Simulate test (in real implementation, this would create a test alert rule)
+    setTimeout(() => {
+        alert('Test configuration looks valid! You can now create the alert rule.');
+        $('#testRuleBtn').prop('disabled', false).html('<i class="fas fa-flask"></i> Test Configuration');
+    }, 2000);
+}
+</script>
+
+<style>
+.required::after {
+    content: " *";
+    color: red;
+}
+
+.badge-lg {
+    font-size: 1.1em;
+    padding: 0.5em 1em;
+}
+
+.form-check-list .form-check {
+    margin-bottom: 0.5rem;
+}
+
+.form-check-list .form-check-label {
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

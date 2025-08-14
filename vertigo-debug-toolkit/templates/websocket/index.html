@@ -1,0 +1,783 @@
+{% extends "base.html" %}
+
+{% block title %}WebSocket Management - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>🔗 WebSocket Real-Time Communication</h1>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary" onclick="refreshStats()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                    </button>
+                    <button class="btn btn-success" onclick="testConnection()">
+                        <i class="bi bi-wifi me-2"></i>Test Connection
+                    </button>
+                    <button class="btn btn-info" onclick="triggerDashboardRefresh()">
+                        <i class="bi bi-arrow-repeat me-2"></i>Trigger Refresh
+                    </button>
+                </div>
+            </div>
+            <p class="lead">Real-time WebSocket communication for live dashboard updates and notifications.</p>
+        </div>
+    </div>
+    
+    <!-- Connection Status Banner -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div id="connection-status" class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                    <div>
+                        <strong>Connecting to WebSocket...</strong>
+                        <div class="small">Initializing real-time communication</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- WebSocket Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="active-connections">-</h4>
+                            <p class="mb-0">Active Connections</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-plug fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="total-connections" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="messages-sent">-</h4>
+                            <p class="mb-0">Messages Sent</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-arrow-up-circle fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="messages-received" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="active-rooms">-</h4>
+                            <p class="mb-0">Active Rooms</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-house fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="queued-messages" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="message-errors">-</h4>
+                            <p class="mb-0">Message Errors</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small id="error-rate" class="text-light">Loading...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Real-Time Message Testing -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Broadcast Message</h5>
+                </div>
+                <div class="card-body">
+                    <form id="broadcastForm">
+                        <div class="mb-3">
+                            <label for="messageType" class="form-label">Message Type</label>
+                            <select class="form-select" id="messageType">
+                                <option value="system_status">System Status</option>
+                                <option value="performance_update">Performance Update</option>
+                                <option value="cache_stats">Cache Stats</option>
+                                <option value="analytics_update">Analytics Update</option>
+                                <option value="alert_notification">Alert Notification</option>
+                                <option value="dashboard_refresh">Dashboard Refresh</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="messageRoom" class="form-label">Target Room (Optional)</label>
+                            <input type="text" class="form-control" id="messageRoom" placeholder="global, performance, analytics, etc.">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="messageData" class="form-label">Message Data (JSON)</label>
+                            <textarea class="form-control" id="messageData" rows="4" placeholder='{"message": "Test message", "data": "value"}'></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="messagePriority" class="form-label">Priority</label>
+                            <select class="form-select" id="messagePriority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary w-100" onclick="broadcastMessage()">
+                            <i class="bi bi-broadcast me-2"></i>Broadcast Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Real-Time Updates</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="sendPerformanceUpdate()">
+                            <i class="bi bi-speedometer2"></i> Performance
+                        </button>
+                        <button class="btn btn-outline-info" onclick="sendCacheUpdate()">
+                            <i class="bi bi-database"></i> Cache
+                        </button>
+                        <button class="btn btn-outline-success" onclick="sendAnalyticsUpdate()">
+                            <i class="bi bi-graph-up"></i> Analytics
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="alertMessage" class="form-label">Send Alert</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="alertMessage" placeholder="Alert message">
+                            <select class="form-select" id="alertSeverity" style="max-width: 120px;">
+                                <option value="info">Info</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                            <button class="btn btn-warning" type="button" onclick="sendAlert()">
+                                <i class="bi bi-exclamation-triangle"></i> Send
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Dashboard Components to Refresh</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="refreshAll" checked>
+                            <label class="form-check-label" for="refreshAll">All Components</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="refreshMetrics">
+                            <label class="form-check-label" for="refreshMetrics">Metrics</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="refreshCharts">
+                            <label class="form-check-label" for="refreshCharts">Charts</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="refreshAlerts">
+                            <label class="form-check-label" for="refreshAlerts">Alerts</label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-info w-100" onclick="triggerDashboardRefresh()">
+                        <i class="bi bi-arrow-repeat me-2"></i>Trigger Dashboard Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Room Management -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Active Rooms</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshRooms()">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="rooms-list">
+                        <div class="text-center text-muted">
+                            <i class="bi bi-house fa-3x mb-3"></i>
+                            <p>Loading active rooms...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Connection Info</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody id="connection-info">
+                            <tr><td>Status:</td><td><span class="badge bg-secondary">Connecting</span></td></tr>
+                            <tr><td>Connection ID:</td><td><code id="connection-id">-</code></td></tr>
+                            <tr><td>Connected At:</td><td id="connected-at">-</td></tr>
+                            <tr><td>Last Heartbeat:</td><td id="last-heartbeat">-</td></tr>
+                            <tr><td>Rooms Joined:</td><td id="rooms-joined">0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Message Log</h5>
+                </div>
+                <div class="card-body">
+                    <div id="message-log" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                        <div class="text-muted">WebSocket messages will appear here...</div>
+                    </div>
+                    <button class="btn btn-outline-secondary btn-sm mt-2" onclick="clearMessageLog()">
+                        <i class="bi bi-trash"></i> Clear Log
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let socket = null;
+    let connectionId = null;
+    let connectedAt = null;
+    let lastHeartbeat = null;
+    let roomsJoined = [];
+    let messageLog = [];
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
+    
+    // Auto-refresh stats every 30 seconds
+    setInterval(refreshStats, 30000);
+    
+    function initializeWebSocket() {
+        try {
+            // Connect to WebSocket
+            socket = io({
+                transports: ['websocket', 'polling']
+            });
+            
+            // Connection event handlers
+            socket.on('connect', function() {
+                updateConnectionStatus('connected');
+                logMessage('Connected to WebSocket server', 'success');
+            });
+            
+            socket.on('disconnect', function() {
+                updateConnectionStatus('disconnected');
+                logMessage('Disconnected from WebSocket server', 'warning');
+            });
+            
+            socket.on('connect_error', function(error) {
+                updateConnectionStatus('error');
+                logMessage('Connection error: ' + error.message, 'error');
+            });
+            
+            // System status messages
+            socket.on('system_status', function(data) {
+                if (data.connection_id) {
+                    connectionId = data.connection_id;
+                    document.getElementById('connection-id').textContent = connectionId.substring(0, 8) + '...';
+                }
+                
+                if (data.server_time) {
+                    connectedAt = new Date(data.server_time);
+                    document.getElementById('connected-at').textContent = connectedAt.toLocaleString();
+                }
+                
+                if (data.rooms) {
+                    roomsJoined = data.rooms;
+                    document.getElementById('rooms-joined').textContent = roomsJoined.length;
+                }
+                
+                logMessage('System status: ' + JSON.stringify(data), 'info');
+            });
+            
+            // Heartbeat handling
+            socket.on('heartbeat', function(data) {
+                lastHeartbeat = new Date();
+                document.getElementById('last-heartbeat').textContent = lastHeartbeat.toLocaleTimeString();
+                
+                // Send heartbeat response
+                socket.emit('heartbeat', {
+                    client_time: new Date().toISOString()
+                });
+            });
+            
+            socket.on('heartbeat_ack', function(data) {
+                logMessage('Heartbeat acknowledged', 'info');
+            });
+            
+            // Real-time data updates
+            socket.on('performance_update', function(data) {
+                logMessage('Performance update received: ' + JSON.stringify(data.metrics), 'info');
+                updatePerformanceDisplay(data.metrics);
+            });
+            
+            socket.on('cache_stats', function(data) {
+                logMessage('Cache stats update received', 'info');
+                updateCacheDisplay(data.stats);
+            });
+            
+            socket.on('analytics_update', function(data) {
+                logMessage('Analytics update received', 'info');
+                updateAnalyticsDisplay(data.analytics);
+            });
+            
+            socket.on('alert_notification', function(data) {
+                logMessage('Alert: ' + JSON.stringify(data.alert), 'warning');
+                showNotification(data.alert);
+            });
+            
+            socket.on('dashboard_refresh', function(data) {
+                logMessage('Dashboard refresh triggered for: ' + data.components.join(', '), 'info');
+                handleDashboardRefresh(data.components);
+            });
+            
+            // Room management
+            socket.on('room_joined', function(data) {
+                logMessage('Joined room: ' + data.room, 'success');
+                if (!roomsJoined.includes(data.room)) {
+                    roomsJoined.push(data.room);
+                    document.getElementById('rooms-joined').textContent = roomsJoined.length;
+                }
+            });
+            
+            socket.on('room_left', function(data) {
+                logMessage('Left room: ' + data.room, 'info');
+                roomsJoined = roomsJoined.filter(room => room !== data.room);
+                document.getElementById('rooms-joined').textContent = roomsJoined.length;
+            });
+            
+            socket.on('room_join_error', function(data) {
+                logMessage('Failed to join room: ' + data.error, 'error');
+            });
+            
+        } catch (error) {
+            console.error('Error initializing WebSocket:', error);
+            updateConnectionStatus('error');
+        }
+    }
+    
+    function updateConnectionStatus(status) {
+        const statusEl = document.getElementById('connection-status');
+        
+        switch (status) {
+            case 'connected':
+                statusEl.className = 'alert alert-success';
+                statusEl.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill text-success me-3 fs-4"></i>
+                        <div>
+                            <strong>WebSocket Connected</strong>
+                            <div class="small">Real-time communication active</div>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('#connection-info tbody tr:first-child td:last-child').innerHTML = '<span class="badge bg-success">Connected</span>';
+                break;
+            case 'disconnected':
+                statusEl.className = 'alert alert-warning';
+                statusEl.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-3 fs-4"></i>
+                        <div>
+                            <strong>WebSocket Disconnected</strong>
+                            <div class="small">Attempting to reconnect...</div>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('#connection-info tbody tr:first-child td:last-child').innerHTML = '<span class="badge bg-warning">Disconnected</span>';
+                break;
+            case 'error':
+                statusEl.className = 'alert alert-danger';
+                statusEl.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-x-circle-fill text-danger me-3 fs-4"></i>
+                        <div>
+                            <strong>WebSocket Connection Error</strong>
+                            <div class="small">Check server status and refresh page</div>
+                        </div>
+                    </div>
+                `;
+                document.querySelector('#connection-info tbody tr:first-child td:last-child').innerHTML = '<span class="badge bg-danger">Error</span>';
+                break;
+        }
+    }
+    
+    function logMessage(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}`;
+        
+        messageLog.push({ timestamp, message, type });
+        
+        // Keep only last 50 messages
+        if (messageLog.length > 50) {
+            messageLog = messageLog.slice(-50);
+        }
+        
+        const logEl = document.getElementById('message-log');
+        const div = document.createElement('div');
+        div.className = `text-${getBootstrapColorForType(type)} mb-1`;
+        div.textContent = logEntry;
+        
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+    
+    function getBootstrapColorForType(type) {
+        const colors = {
+            'success': 'success',
+            'error': 'danger',
+            'warning': 'warning',
+            'info': 'primary'
+        };
+        return colors[type] || 'muted';
+    }
+    
+    function clearMessageLog() {
+        messageLog = [];
+        document.getElementById('message-log').innerHTML = '<div class="text-muted">Message log cleared</div>';
+    }
+    
+    // Global functions for button interactions
+    window.refreshStats = async function() {
+        try {
+            const response = await fetch('/ws/api/stats');
+            const result = await response.json();
+            
+            if (result.success) {
+                const stats = result.stats;
+                
+                document.getElementById('active-connections').textContent = stats.active_connections;
+                document.getElementById('total-connections').textContent = `Total: ${stats.total_connections}`;
+                document.getElementById('messages-sent').textContent = stats.messages_sent;
+                document.getElementById('messages-received').textContent = `Received: ${stats.messages_received}`;
+                document.getElementById('active-rooms').textContent = stats.active_rooms;
+                document.getElementById('queued-messages').textContent = `Queued: ${stats.queued_messages}`;
+                document.getElementById('message-errors').textContent = stats.message_errors;
+                
+                const errorRate = stats.messages_sent > 0 ? ((stats.message_errors / stats.messages_sent) * 100).toFixed(1) : '0.0';
+                document.getElementById('error-rate').textContent = `Error rate: ${errorRate}%`;
+            }
+        } catch (error) {
+            console.error('Error refreshing stats:', error);
+        }
+    };
+    
+    window.testConnection = async function() {
+        try {
+            const response = await fetch('/ws/api/test-connection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', result.message);
+                logMessage('Connection test successful', 'success');
+            } else {
+                showAlert('danger', 'Connection test failed: ' + result.error);
+                logMessage('Connection test failed: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error testing connection:', error);
+            showAlert('danger', 'Error testing connection');
+        }
+    };
+    
+    window.broadcastMessage = async function() {
+        try {
+            const messageType = document.getElementById('messageType').value;
+            const messageRoom = document.getElementById('messageRoom').value;
+            const messageDataText = document.getElementById('messageData').value;
+            const messagePriority = document.getElementById('messagePriority').value;
+            
+            let messageData;
+            try {
+                messageData = messageDataText ? JSON.parse(messageDataText) : { message: 'Test message' };
+            } catch (e) {
+                showAlert('danger', 'Invalid JSON in message data');
+                return;
+            }
+            
+            const payload = {
+                type: messageType,
+                data: messageData,
+                priority: messagePriority
+            };
+            
+            if (messageRoom) {
+                payload.room = messageRoom;
+            }
+            
+            const response = await fetch('/ws/api/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', result.message);
+                logMessage(`Broadcast sent: ${messageType} to ${result.recipients} recipients`, 'success');
+            } else {
+                showAlert('danger', 'Broadcast failed: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error broadcasting message:', error);
+            showAlert('danger', 'Error broadcasting message');
+        }
+    };
+    
+    window.sendPerformanceUpdate = async function() {
+        try {
+            const response = await fetch('/ws/api/send-performance-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', 'Performance update sent');
+                logMessage('Performance update sent to all clients', 'success');
+            }
+        } catch (error) {
+            console.error('Error sending performance update:', error);
+        }
+    };
+    
+    window.sendCacheUpdate = async function() {
+        try {
+            const response = await fetch('/ws/api/send-cache-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', 'Cache update sent');
+                logMessage('Cache stats update sent to all clients', 'success');
+            }
+        } catch (error) {
+            console.error('Error sending cache update:', error);
+        }
+    };
+    
+    window.sendAnalyticsUpdate = async function() {
+        try {
+            const response = await fetch('/ws/api/send-analytics-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', 'Analytics update sent');
+                logMessage('Analytics update sent to all clients', 'success');
+            }
+        } catch (error) {
+            console.error('Error sending analytics update:', error);
+        }
+    };
+    
+    window.sendAlert = async function() {
+        const message = document.getElementById('alertMessage').value;
+        const severity = document.getElementById('alertSeverity').value;
+        
+        if (!message) {
+            showAlert('warning', 'Please enter an alert message');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/ws/api/send-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    alert: {
+                        message: message,
+                        severity: severity,
+                        timestamp: new Date().toISOString()
+                    },
+                    priority: severity === 'critical' ? 'critical' : 'high'
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', 'Alert sent successfully');
+                logMessage(`Alert sent: ${severity} - ${message}`, 'warning');
+                document.getElementById('alertMessage').value = '';
+            }
+        } catch (error) {
+            console.error('Error sending alert:', error);
+        }
+    };
+    
+    window.triggerDashboardRefresh = async function() {
+        const components = [];
+        
+        if (document.getElementById('refreshAll').checked) {
+            components.push('all');
+        } else {
+            if (document.getElementById('refreshMetrics').checked) components.push('metrics');
+            if (document.getElementById('refreshCharts').checked) components.push('charts');
+            if (document.getElementById('refreshAlerts').checked) components.push('alerts');
+        }
+        
+        try {
+            const response = await fetch('/ws/api/trigger-refresh', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ components })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('success', result.message);
+                logMessage(`Dashboard refresh triggered for: ${components.join(', ')}`, 'info');
+            }
+        } catch (error) {
+            console.error('Error triggering refresh:', error);
+        }
+    };
+    
+    function updatePerformanceDisplay(metrics) {
+        // Update performance metrics if on performance page
+        if (window.location.pathname.includes('performance')) {
+            // This would update performance dashboard elements
+            console.log('Performance metrics received:', metrics);
+        }
+    }
+    
+    function updateCacheDisplay(stats) {
+        // Update cache statistics if on cache page
+        if (window.location.pathname.includes('cache')) {
+            // This would update cache dashboard elements
+            console.log('Cache stats received:', stats);
+        }
+    }
+    
+    function updateAnalyticsDisplay(analytics) {
+        // Update analytics if on analytics page
+        if (window.location.pathname.includes('analytics')) {
+            // This would update analytics dashboard elements
+            console.log('Analytics received:', analytics);
+        }
+    }
+    
+    function showNotification(alert) {
+        // Show browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`Vertigo Alert: ${alert.severity}`, {
+                body: alert.message,
+                icon: '/static/favicon.ico'
+            });
+        }
+        
+        // Also show as page alert
+        const alertClass = {
+            'info': 'info',
+            'warning': 'warning',
+            'error': 'danger',
+            'critical': 'danger'
+        }[alert.severity] || 'info';
+        
+        showAlert(alertClass, `${alert.severity.toUpperCase()}: ${alert.message}`);
+    }
+    
+    function handleDashboardRefresh(components) {
+        // Refresh dashboard components based on what was requested
+        if (components.includes('all') || components.includes('metrics')) {
+            // Refresh metrics
+            if (typeof refreshStats === 'function') {
+                refreshStats();
+            }
+        }
+        
+        if (components.includes('all') || components.includes('charts')) {
+            // Refresh charts
+            window.location.reload();
+        }
+    }
+    
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    // Load initial stats
+    refreshStats();
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+});
+</script>
+{% endblock %}

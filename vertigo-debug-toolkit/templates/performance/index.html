@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Monitoring - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>⚡ Performance Monitoring</h1>
+            <p class="lead">Real-time monitoring of latency, error rates, and trace performance from multiple data sources.</p>
+        </div>
+    </div>
+    
+    <!-- Performance Summary Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="total-traces">-</h4>
+                            <p class="mb-0">Total Traces</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="success-rate">-</h4>
+                            <p class="mb-0">Success Rate</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="avg-latency">-</h4>
+                            <p class="mb-0">Avg Latency (ms)</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="total-cost">-</h4>
+                            <p class="mb-0">Total Cost ($)</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Response Time Over Time</h5>
+                    <div class="d-flex gap-2">
+                        <select id="data-source-selector" class="form-select form-select-sm">
+                            <option value="all" selected>All Sources</option>
+                            <option value="database">Database (Live)</option>
+                            <option value="langwatch">LangWatch API</option>
+                            <option value="firestore">Firestore Sync</option>
+                        </select>
+                        <select id="time-range" class="form-select form-select-sm">
+                            <option value="1">Last Hour</option>
+                            <option value="6">Last 6 Hours</option>
+                            <option value="24" selected>Last 24 Hours</option>
+                            <option value="168">Last Week</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="latencyChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Success vs Error Rate</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="errorChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Traces -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Traces</h5>
+                    <button id="refresh-traces" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="traces-list">
+                        <div class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading traces...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Source Status -->
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="alert alert-info" id="data-source-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Active Data Source:</strong> <span id="data-source">Loading...</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Source Status</h6>
+                </div>
+                <div class="card-body" id="source-status-body">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let latencyChart = null;
+    let errorChart = null;
+    let currentTimeRange = 24;
+    let currentDataSource = 'all';
+    
+    // Initialize charts
+    const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+    const errorCtx = document.getElementById('errorChart').getContext('2d');
+    
+    // Chart configurations
+    const latencyChartConfig = {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Average Latency (ms)',
+                data: [],
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1,
+                fill: true
+            }, {
+                label: '95th Percentile (ms)',
+                data: [],
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Response Time (ms)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    };
+    
+    const errorChartConfig = {
+        type: 'doughnut',
+        data: {
+            labels: ['Success', 'Errors'],
+            datasets: [{
+                data: [0, 0],
+                backgroundColor: ['#28a745', '#dc3545'],
+                hoverBackgroundColor: ['#218838', '#c82333']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    latencyChart = new Chart(latencyCtx, latencyChartConfig);
+    errorChart = new Chart(errorCtx, errorChartConfig);
+    
+    // Fetch and update performance metrics
+    async function updatePerformanceMetrics() {
+        try {
+            const response = await fetch(`/performance/api/metrics?hours=${currentTimeRange}&source=${currentDataSource}`);
+            const result = await response.json();
+            
+            if (result.success && result.metrics) {
+                const metrics = result.metrics;
+                
+                // Update summary cards
+                document.getElementById('total-traces').textContent = metrics.total_traces || 0;
+                document.getElementById('success-rate').textContent = `${metrics.success_rate || 0}%`;
+                document.getElementById('avg-latency').textContent = Math.round(metrics.average_latency_ms || 0);
+                document.getElementById('total-cost').textContent = `$${(metrics.total_cost || 0).toFixed(4)}`;
+                
+                // Update data source indicator
+                let dataSourceText = '';
+                if (metrics.is_fallback) {
+                    dataSourceText = 'Production-Quality Demo Data (No live sources available)';
+                } else if (metrics.data_sources && metrics.data_sources.length > 0) {
+                    const liveSourcesCount = metrics.data_sources.filter(s => s.is_live).length;
+                    const sourceNames = metrics.data_sources.map(s => s.name).join(', ');
+                    dataSourceText = `${sourceNames} (${liveSourcesCount} live, ${metrics.total_traces} traces)`;
+                } else {
+                    dataSourceText = 'Unknown data source';
+                }
+                document.getElementById('data-source').textContent = dataSourceText;
+                
+                // Update error chart
+                errorChart.data.datasets[0].data = [metrics.success_count || 0, metrics.error_count || 0];
+                errorChart.update();
+            }
+        } catch (error) {
+            console.error('Error fetching performance metrics:', error);
+            document.getElementById('data-source').textContent = 'Error connecting to LangWatch';
+        }
+    }
+    
+    // Fetch and update latency time series
+    async function updateLatencyChart() {
+        try {
+            const response = await fetch(`/performance/api/latency-series?hours=${currentTimeRange}&source=${currentDataSource}`);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                const data = result.data;
+                
+                // Prepare chart data
+                const labels = data.map(point => {
+                    const date = new Date(point.time);
+                    return date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                });
+                
+                const avgLatencies = data.map(point => point.latency_avg);
+                const p95Latencies = data.map(point => point.latency_p95);
+                
+                // Update chart
+                latencyChart.data.labels = labels;
+                latencyChart.data.datasets[0].data = avgLatencies;
+                latencyChart.data.datasets[1].data = p95Latencies;
+                latencyChart.update();
+            }
+        } catch (error) {
+            console.error('Error fetching latency data:', error);
+        }
+    }
+    
+    // Fetch and update recent traces
+    async function updateRecentTraces() {
+        try {
+            const response = await fetch(`/performance/api/recent-traces?limit=10&source=${currentDataSource}`);
+            const result = await response.json();
+            
+            const tracesList = document.getElementById('traces-list');
+            
+            if (result.success && result.traces && result.traces.length > 0) {
+                const tracesHtml = result.traces.map(trace => {
+                    const statusClass = trace.status === 'success' ? 'success' : 'danger';
+                    const statusIcon = trace.status === 'success' ? 'check-circle' : 'exclamation-circle';
+                    const timestamp = new Date(trace.timestamp).toLocaleString();
+                    
+                    return `
+                        <div class="row border-bottom py-2">
+                            <div class="col-md-3">
+                                <strong>${trace.name}</strong>
+                                <br><small class="text-muted">${trace.id}</small>
+                            </div>
+                            <div class="col-md-2">
+                                <span class="badge bg-${statusClass}">
+                                    <i class="fas fa-${statusIcon}"></i> ${trace.status}
+                                </span>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>${Math.round(trace.latency)}ms</strong>
+                            </div>
+                            <div class="col-md-2">
+                                <strong>$${(trace.cost || 0).toFixed(4)}</strong>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted">${timestamp}</small>
+                                ${trace.user_id ? `<br><small class="text-muted">User: ${trace.user_id}</small>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                tracesList.innerHTML = `
+                    <div class="row border-bottom py-2 bg-light fw-bold">
+                        <div class="col-md-3">Operation</div>
+                        <div class="col-md-2">Status</div>
+                        <div class="col-md-2">Latency</div>
+                        <div class="col-md-2">Cost</div>
+                        <div class="col-md-3">Timestamp</div>
+                    </div>
+                    ${tracesHtml}
+                `;
+            } else {
+                tracesList.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>No traces found for the selected time period.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error fetching traces:', error);
+            document.getElementById('traces-list').innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Error loading traces. Please try again.
+                </div>
+            `;
+        }
+    }
+    
+    // Fetch and update data source status
+    async function updateDataSourceStatus() {
+        try {
+            const response = await fetch('/performance/api/data-sources');
+            const result = await response.json();
+            
+            if (result.success && result.status) {
+                const status = result.status;
+                const statusBody = document.getElementById('source-status-body');
+                
+                let statusHtml = '';
+                for (const [sourceName, sourceStatus] of Object.entries(status.sources)) {
+                    const healthClass = sourceStatus.health === 'healthy' ? 'success' : 
+                                       sourceStatus.health === 'degraded' ? 'warning' : 'danger';
+                    const healthIcon = sourceStatus.health === 'healthy' ? 'check-circle' : 
+                                      sourceStatus.health === 'degraded' ? 'exclamation-triangle' : 'times-circle';
+                    
+                    statusHtml += `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-capitalize">${sourceName}</span>
+                            <span class="badge bg-${healthClass}">
+                                <i class="fas fa-${healthIcon}"></i> ${sourceStatus.health}
+                            </span>
+                        </div>
+                    `;
+                }
+                
+                statusBody.innerHTML = statusHtml;
+            }
+        } catch (error) {
+            console.error('Error fetching data source status:', error);
+            document.getElementById('source-status-body').innerHTML = `
+                <div class="alert alert-warning alert-sm mb-0">
+                    <small>Error loading status</small>
+                </div>
+            `;
+        }
+    }
+    
+    // Event listeners
+    document.getElementById('data-source-selector').addEventListener('change', function() {
+        currentDataSource = this.value;
+        updatePerformanceMetrics();
+        updateLatencyChart();
+        updateRecentTraces();
+    });
+    
+    document.getElementById('time-range').addEventListener('change', function() {
+        currentTimeRange = parseInt(this.value);
+        updatePerformanceMetrics();
+        updateLatencyChart();
+    });
+    
+    document.getElementById('refresh-traces').addEventListener('click', function() {
+        updateRecentTraces();
+    });
+    
+    // Initial data load
+    updatePerformanceMetrics();
+    updateLatencyChart();
+    updateRecentTraces();
+    updateDataSourceStatus();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+        updatePerformanceMetrics();
+        updateLatencyChart();
+        updateDataSourceStatus();
+    }, 30000);
+    
+    // Auto-refresh traces every 60 seconds
+    setInterval(updateRecentTraces, 60000);
+});
+</script>
+{% endblock %} 

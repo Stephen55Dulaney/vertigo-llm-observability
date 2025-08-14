@@ -1,0 +1,614 @@
+{% extends "base.html" %}
+
+{% block title %}Interactive Playground - Vertigo Debug Toolkit{% endblock %}
+
+{% block extra_css %}
+<style>
+.playground-container {
+    background: #f8fafc;
+    min-height: calc(100vh - 200px);
+}
+
+.control-panel {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.chart-preview {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 24px;
+    min-height: 400px;
+}
+
+.config-section {
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.config-section h6 {
+    margin-bottom: 12px;
+    color: #374151;
+    font-weight: 600;
+}
+
+.color-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.color-option {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.color-option.selected {
+    border-color: #6366f1;
+}
+
+.data-input {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 12px;
+}
+
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.export-options {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.chart-error {
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 12px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="playground-container">
+    <div class="container-fluid py-4">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-2">🎨 Interactive Visualization Playground</h1>
+                <p class="text-muted mb-0">Create custom charts and experiment with different visualization types</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Control Panel -->
+            <div class="col-lg-4">
+                <div class="control-panel">
+                    <h5 class="mb-3">Chart Configuration</h5>
+                    
+                    <!-- Chart Type Selection -->
+                    <div class="config-section">
+                        <h6>Chart Type</h6>
+                        <select id="chartType" class="form-select">
+                            <option value="line">Line Chart</option>
+                            <option value="bar">Bar Chart</option>
+                            <option value="horizontalBar">Horizontal Bar</option>
+                            <option value="pie">Pie Chart</option>
+                            <option value="doughnut">Donut Chart</option>
+                            <option value="radar">Radar Chart</option>
+                            <option value="scatter">Scatter Plot</option>
+                            <option value="bubble">Bubble Chart</option>
+                        </select>
+                    </div>
+
+                    <!-- Chart Title and Labels -->
+                    <div class="config-section">
+                        <h6>Title & Labels</h6>
+                        <div class="mb-2">
+                            <label class="form-label">Title</label>
+                            <input type="text" id="chartTitle" class="form-control" placeholder="Custom Chart Title">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">X-Axis Label</label>
+                            <input type="text" id="xAxisLabel" class="form-control" placeholder="X-Axis">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Y-Axis Label</label>
+                            <input type="text" id="yAxisLabel" class="form-control" placeholder="Y-Axis">
+                        </div>
+                    </div>
+
+                    <!-- Data Input -->
+                    <div class="config-section">
+                        <h6>Data Input</h6>
+                        <div class="preset-buttons">
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('performance')">Performance</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('costs')">Costs</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('errors')">Errors</button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="loadPreset('random')">Random</button>
+                        </div>
+                        
+                        <label class="form-label">Labels (comma-separated)</label>
+                        <textarea id="dataLabels" class="form-control data-input mb-2" rows="2" 
+                                  placeholder="Jan, Feb, Mar, Apr, May"></textarea>
+                        
+                        <label class="form-label">Data (comma-separated numbers)</label>
+                        <textarea id="dataValues" class="form-control data-input mb-2" rows="2" 
+                                  placeholder="10, 20, 30, 40, 50"></textarea>
+                        
+                        <label class="form-label">Dataset Label</label>
+                        <input type="text" id="datasetLabel" class="form-control" placeholder="Dataset 1">
+                    </div>
+
+                    <!-- Color Configuration -->
+                    <div class="config-section">
+                        <h6>Colors</h6>
+                        <label class="form-label">Primary Color</label>
+                        <div class="color-picker-grid">
+                            <div class="color-option" style="background-color: #4F46E5;" data-color="#4F46E5"></div>
+                            <div class="color-option" style="background-color: #10B981;" data-color="#10B981"></div>
+                            <div class="color-option" style="background-color: #F59E0B;" data-color="#F59E0B"></div>
+                            <div class="color-option selected" style="background-color: #EF4444;" data-color="#EF4444"></div>
+                            <div class="color-option" style="background-color: #8B5CF6;" data-color="#8B5CF6"></div>
+                            <div class="color-option" style="background-color: #06B6D4;" data-color="#06B6D4"></div>
+                            <div class="color-option" style="background-color: #84CC16;" data-color="#84CC16"></div>
+                            <div class="color-option" style="background-color: #F97316;" data-color="#F97316"></div>
+                        </div>
+                        <input type="color" id="customColor" class="form-control mt-2" value="#4F46E5">
+                    </div>
+
+                    <!-- Chart Options -->
+                    <div class="config-section">
+                        <h6>Options</h6>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="showAnimation" checked>
+                            <label class="form-check-label" for="showAnimation">Enable Animation</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="showLegend" checked>
+                            <label class="form-check-label" for="showLegend">Show Legend</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="showDataLabels">
+                            <label class="form-check-label" for="showDataLabels">Show Data Labels</label>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Legend Position</label>
+                            <select id="legendPosition" class="form-select">
+                                <option value="top">Top</option>
+                                <option value="bottom">Bottom</option>
+                                <option value="left">Left</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="config-section">
+                        <h6>Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="generateChart()">
+                                <i class="bi bi-bar-chart me-2"></i>Generate Chart
+                            </button>
+                            <button class="btn btn-outline-success" onclick="saveChart()">
+                                <i class="bi bi-save me-2"></i>Save Configuration
+                            </button>
+                            <button class="btn btn-outline-info" onclick="exportChart()">
+                                <i class="bi bi-download me-2"></i>Export Chart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Preview -->
+            <div class="col-lg-8">
+                <div class="chart-preview">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Chart Preview</h5>
+                        <div class="export-options">
+                            <small class="text-muted" id="chart-info">Select configuration and click Generate</small>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="fullscreenChart()" disabled id="fullscreen-btn">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container" style="position: relative; height: 400px;">
+                        <canvas id="playground-chart" style="display: none;"></canvas>
+                        
+                        <div id="chart-placeholder" class="text-center" style="padding: 100px 0;">
+                            <i class="bi bi-bar-chart text-muted" style="font-size: 4rem;"></i>
+                            <h4 class="text-muted mt-3">Chart Preview</h4>
+                            <p class="text-muted mb-0">Configure your chart settings and click "Generate Chart" to preview</p>
+                        </div>
+                        
+                        <div id="chart-error" class="chart-error" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <!-- Chart Code -->
+                <div class="chart-preview mt-4">
+                    <h5 class="mb-3">Generated Configuration</h5>
+                    <pre id="chart-config-code" class="bg-light p-3 rounded" style="font-size: 12px; max-height: 300px; overflow-y: auto;"><code>// Chart configuration will appear here after generation</code></pre>
+                    <button class="btn btn-outline-primary btn-sm mt-2" onclick="copyConfiguration()" disabled id="copy-btn">
+                        <i class="bi bi-clipboard me-1"></i>Copy Configuration
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentChart = null;
+    let currentConfig = null;
+    let selectedColor = '#EF4444';
+    
+    // Initialize color picker
+    initializeColorPicker();
+    
+    // Load default preset
+    loadPreset('performance');
+    
+    function initializeColorPicker() {
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                colorOptions.forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedColor = this.dataset.color;
+            });
+        });
+        
+        document.getElementById('customColor').addEventListener('change', function() {
+            selectedColor = this.value;
+            // Update selected color option
+            colorOptions.forEach(opt => opt.classList.remove('selected'));
+        });
+    }
+    
+    function loadPreset(presetType) {
+        const presets = {
+            performance: {
+                labels: 'Mon, Tue, Wed, Thu, Fri, Sat, Sun',
+                values: '85, 76, 92, 88, 79, 94, 87',
+                label: 'Performance Score',
+                title: 'Weekly Performance Metrics'
+            },
+            costs: {
+                labels: 'Gemini API, Firestore, Functions, Gmail API, Hosting',
+                values: '45.67, 12.34, 8.90, 3.45, 15.20',
+                label: 'Cost ($)',
+                title: 'Service Cost Breakdown'
+            },
+            errors: {
+                labels: 'Auth, Rate Limit, Database, Network, Validation',
+                values: '5, 12, 3, 8, 15',
+                label: 'Error Count',
+                title: 'Error Distribution'
+            },
+            random: {
+                labels: 'A, B, C, D, E, F',
+                values: generateRandomData(6).join(', '),
+                label: 'Random Data',
+                title: 'Random Dataset'
+            }
+        };
+        
+        const preset = presets[presetType];
+        if (preset) {
+            document.getElementById('dataLabels').value = preset.labels;
+            document.getElementById('dataValues').value = preset.values;
+            document.getElementById('datasetLabel').value = preset.label;
+            document.getElementById('chartTitle').value = preset.title;
+        }
+    }
+    
+    function generateRandomData(count) {
+        return Array.from({ length: count }, () => Math.floor(Math.random() * 100));
+    }
+    
+    function generateChart() {
+        try {
+            // Get configuration values
+            const chartType = document.getElementById('chartType').value;
+            const title = document.getElementById('chartTitle').value || 'Custom Chart';
+            const xAxisLabel = document.getElementById('xAxisLabel').value;
+            const yAxisLabel = document.getElementById('yAxisLabel').value;
+            const labelsText = document.getElementById('dataLabels').value;
+            const valuesText = document.getElementById('dataValues').value;
+            const datasetLabel = document.getElementById('datasetLabel').value || 'Dataset';
+            
+            const showAnimation = document.getElementById('showAnimation').checked;
+            const showLegend = document.getElementById('showLegend').checked;
+            const showDataLabels = document.getElementById('showDataLabels').checked;
+            const legendPosition = document.getElementById('legendPosition').value;
+            
+            // Parse data
+            const labels = labelsText.split(',').map(l => l.trim());
+            const values = valuesText.split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v));
+            
+            if (labels.length === 0 || values.length === 0) {
+                throw new Error('Please provide valid labels and data values');
+            }
+            
+            // Generate colors
+            const backgroundColor = chartType.includes('pie') || chartType.includes('doughnut') 
+                ? generateColorPalette(values.length)
+                : selectedColor + '80';
+            const borderColor = chartType.includes('pie') || chartType.includes('doughnut')
+                ? generateColorPalette(values.length)
+                : selectedColor;
+            
+            // Create chart configuration
+            const config = {
+                type: chartType === 'horizontalBar' ? 'bar' : chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: datasetLabel,
+                        data: values,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: chartType.includes('line') ? 2 : 1,
+                        fill: chartType === 'line' ? false : true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: chartType === 'horizontalBar' ? 'y' : 'x',
+                    animation: {
+                        duration: showAnimation ? 750 : 0
+                    },
+                    plugins: {
+                        title: {
+                            display: title.length > 0,
+                            text: title,
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: showLegend,
+                            position: legendPosition
+                        },
+                        datalabels: {
+                            display: showDataLabels
+                        }
+                    }
+                }
+            };
+            
+            // Add scales for appropriate chart types
+            if (!chartType.includes('pie') && !chartType.includes('doughnut') && chartType !== 'radar') {
+                config.options.scales = {
+                    x: {
+                        title: {
+                            display: xAxisLabel.length > 0,
+                            text: xAxisLabel
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: yAxisLabel.length > 0,
+                            text: yAxisLabel
+                        }
+                    }
+                };
+            }
+            
+            // Special configuration for radar charts
+            if (chartType === 'radar') {
+                config.options.scales = {
+                    r: {
+                        beginAtZero: true
+                    }
+                };
+            }
+            
+            // Create the chart
+            createChart(config);
+            currentConfig = config;
+            
+            // Update UI
+            document.getElementById('chart-placeholder').style.display = 'none';
+            document.getElementById('chart-error').style.display = 'none';
+            document.getElementById('playground-chart').style.display = 'block';
+            document.getElementById('fullscreen-btn').disabled = false;
+            document.getElementById('copy-btn').disabled = false;
+            
+            // Update chart info
+            const info = `${chartType} • ${values.length} data points • Generated at ${new Date().toLocaleTimeString()}`;
+            document.getElementById('chart-info').textContent = info;
+            
+            // Display configuration code
+            displayConfiguration(config);
+            
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+    
+    function createChart(config) {
+        const canvas = document.getElementById('playground-chart');
+        const ctx = canvas.getContext('2d');
+        
+        // Destroy existing chart
+        if (currentChart) {
+            currentChart.destroy();
+        }
+        
+        // Create new chart
+        currentChart = new Chart(ctx, config);
+    }
+    
+    function generateColorPalette(count) {
+        const baseColors = [
+            '#4F46E5', '#10B981', '#F59E0B', '#EF4444',
+            '#8B5CF6', '#06B6D4', '#84CC16', '#F97316'
+        ];
+        
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            colors.push(baseColors[i % baseColors.length]);
+        }
+        return colors;
+    }
+    
+    function displayConfiguration(config) {
+        const codeElement = document.getElementById('chart-config-code');
+        const formattedConfig = JSON.stringify(config, null, 2);
+        codeElement.innerHTML = `<code>${escapeHtml(formattedConfig)}</code>`;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function showError(message) {
+        const errorElement = document.getElementById('chart-error');
+        errorElement.textContent = `Error: ${message}`;
+        errorElement.style.display = 'block';
+        
+        document.getElementById('chart-placeholder').style.display = 'none';
+        document.getElementById('playground-chart').style.display = 'none';
+    }
+    
+    function saveChart() {
+        if (!currentConfig) {
+            alert('Please generate a chart first');
+            return;
+        }
+        
+        const saveData = {
+            config: currentConfig,
+            timestamp: new Date().toISOString(),
+            title: document.getElementById('chartTitle').value || 'Custom Chart'
+        };
+        
+        // Save to localStorage
+        const saved = JSON.parse(localStorage.getItem('vertigo_saved_charts') || '[]');
+        saved.push(saveData);
+        localStorage.setItem('vertigo_saved_charts', JSON.stringify(saved));
+        
+        // Show success message
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check me-2"></i>Saved!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-success');
+        }, 2000);
+    }
+    
+    function exportChart() {
+        if (!currentChart) {
+            alert('Please generate a chart first');
+            return;
+        }
+        
+        // Export as image
+        const canvas = document.getElementById('playground-chart');
+        const link = document.createElement('a');
+        link.download = `custom-chart-${new Date().getTime()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+    
+    function copyConfiguration() {
+        if (!currentConfig) {
+            alert('Please generate a chart first');
+            return;
+        }
+        
+        const configText = JSON.stringify(currentConfig, null, 2);
+        navigator.clipboard.writeText(configText).then(() => {
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-outline-primary');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-primary');
+            }, 2000);
+        });
+    }
+    
+    function fullscreenChart() {
+        if (!currentChart) return;
+        
+        // Create fullscreen modal
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">${currentConfig.options.plugins.title.text || 'Chart'}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <canvas id="fullscreen-chart" style="width: 100%; height: 500px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+        
+        // Create chart in modal
+        setTimeout(() => {
+            const fullscreenCanvas = document.getElementById('fullscreen-chart');
+            const fullscreenCtx = fullscreenCanvas.getContext('2d');
+            new Chart(fullscreenCtx, currentConfig);
+        }, 300);
+        
+        // Clean up modal when closed
+        modal.addEventListener('hidden.bs.modal', () => {
+            document.body.removeChild(modal);
+        });
+    }
+    
+    // Global functions
+    window.generateChart = generateChart;
+    window.loadPreset = loadPreset;
+    window.saveChart = saveChart;
+    window.exportChart = exportChart;
+    window.copyConfiguration = copyConfiguration;
+    window.fullscreenChart = fullscreenChart;
+});
+</script>
+{% endblock %}

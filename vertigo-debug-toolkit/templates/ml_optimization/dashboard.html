@@ -1,0 +1,1302 @@
+{% extends "base.html" %}
+
+{% block title %}ML Optimization Dashboard - {{ super() }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+<style>
+.ml-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.insight-item {
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.pattern-item {
+    background: #fff7ed;
+    border-left: 4px solid #f59e0b;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.recommendation-item {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.priority-critical {
+    border-left-color: #dc2626 !important;
+    background-color: #fef2f2 !important;
+}
+
+.priority-high {
+    border-left-color: #ea580c !important;
+    background-color: #fff7ed !important;
+}
+
+.priority-medium {
+    border-left-color: #d97706 !important;
+    background-color: #fffbeb !important;
+}
+
+.priority-low {
+    border-left-color: #65a30d !important;
+    background-color: #f7fee7 !important;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #6b7280;
+}
+
+.error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.tab-container {
+    margin-bottom: 2rem;
+}
+
+.tab-nav {
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 1.5rem;
+}
+
+.tab-nav button {
+    padding: 0.75rem 1rem;
+    border: none;
+    background: none;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    margin-right: 1rem;
+}
+
+.tab-nav button.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: 1rem;
+}
+
+.test-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.test-status-running {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.test-status-completed {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.test-status-draft {
+    background: #f3f4f6;
+    color: #374151;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.variant-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.variant-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    transition: width 0.3s ease;
+}
+
+.winner-badge {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">ML Optimization Dashboard</h1>
+        <p class="text-gray-600 mt-2">Intelligent prompt performance analysis and optimization recommendations</p>
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="loading" class="loading">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-2">Loading ML insights...</p>
+        </div>
+    </div>
+
+    <!-- Error display -->
+    <div id="error" class="error" style="display: none;">
+        <strong>Error:</strong> <span id="error-message"></span>
+    </div>
+
+    <!-- Dashboard content -->
+    <div id="dashboard-content" style="display: none;">
+        <!-- Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="ml-card">
+                <div class="metric-value" id="total-prompts">-</div>
+                <div class="metric-label">Prompts Analyzed</div>
+            </div>
+            <div class="ml-card">
+                <div class="metric-value" id="patterns-detected">-</div>
+                <div class="metric-label">Patterns Detected</div>
+            </div>
+            <div class="ml-card">
+                <div class="metric-value" id="optimization-opportunities">-</div>
+                <div class="metric-label">High-Impact Opportunities</div>
+            </div>
+            <div class="ml-card">
+                <div class="metric-value" id="analysis-timestamp">-</div>
+                <div class="metric-label">Last Analysis</div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-nav">
+                <button class="tab-button active" data-tab="overview">Overview</button>
+                <button class="tab-button" data-tab="patterns">Performance Patterns</button>
+                <button class="tab-button" data-tab="recommendations">Recommendations</button>
+                <button class="tab-button" data-tab="ab-testing">A/B Testing</button>
+                <button class="tab-button" data-tab="quality">Quality Analysis</button>
+                <button class="tab-button" data-tab="models">Model Comparison</button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview" class="tab-content active">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Performance Distribution -->
+                    <div class="ml-card">
+                        <h3 class="text-lg font-semibold mb-4">Performance Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="performance-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Optimization Opportunities -->
+                    <div class="ml-card">
+                        <h3 class="text-lg font-semibold mb-4">Top Optimization Opportunities</h3>
+                        <div id="optimization-opportunities-list">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Key Insights -->
+                <div class="ml-card">
+                    <h3 class="text-lg font-semibold mb-4">Key Insights</h3>
+                    <div id="key-insights">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Patterns Tab -->
+            <div id="patterns" class="tab-content">
+                <div class="ml-card">
+                    <h3 class="text-lg font-semibold mb-4">Detected Performance Patterns</h3>
+                    <div id="patterns-list">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations Tab -->
+            <div id="recommendations" class="tab-content">
+                <div class="ml-card">
+                    <h3 class="text-lg font-semibold mb-4">Optimization Recommendations</h3>
+                    <div id="recommendations-list">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- A/B Testing Tab -->
+            <div id="ab-testing" class="tab-content">
+                <!-- A/B Testing Header with Actions -->
+                <div class="ml-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">A/B Testing Dashboard</h3>
+                        <div class="space-x-2">
+                            <button onclick="createNewTest()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                                Create New Test
+                            </button>
+                            <button onclick="refreshABTests()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- A/B Testing Overview Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600" id="active-tests-count">-</div>
+                            <div class="text-sm text-gray-600">Active Tests</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="completed-tests-count">-</div>
+                            <div class="text-sm text-gray-600">Completed Tests</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600" id="total-variants-tested">-</div>
+                            <div class="text-sm text-gray-600">Variants Tested</div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-orange-600" id="avg-improvement">-</div>
+                            <div class="text-sm text-gray-600">Avg Improvement</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Tests -->
+                <div class="ml-card">
+                    <h4 class="text-md font-semibold mb-4">Active A/B Tests</h4>
+                    <div id="active-ab-tests">
+                        <div class="text-center py-8 text-gray-500" id="no-active-tests" style="display: none;">
+                            <div class="mb-2">No active tests found</div>
+                            <button onclick="createNewTest()" class="text-blue-600 hover:text-blue-800">Create your first test</button>
+                        </div>
+                        <!-- Active tests will be populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Recent Test Results -->
+                <div class="ml-card">
+                    <h4 class="text-md font-semibold mb-4">Recent Test Results</h4>
+                    <div id="recent-test-results">
+                        <!-- Recent results will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Analysis Tab -->
+            <div id="quality" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="ml-card">
+                        <h3 class="text-lg font-semibold mb-4">Quality Score Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="quality-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-card">
+                        <h3 class="text-lg font-semibold mb-4">Common Quality Issues</h3>
+                        <div id="quality-issues">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Comparison Tab -->
+            <div id="models" class="tab-content">
+                <div class="ml-card">
+                    <h3 class="text-lg font-semibold mb-4">Model Performance Comparison</h3>
+                    <div class="chart-container">
+                        <canvas id="model-comparison-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Modals -->
+<div id="recommendation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Recommendation Details</h3>
+                <div id="modal-content">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm" onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- A/B Test Creation Modal -->
+<div id="create-test-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Create A/B Test</h3>
+                <form id="create-test-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Test Name</label>
+                        <input type="text" name="name" required class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Optimize Email Summary Prompt">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea name="description" required class="w-full border border-gray-300 rounded-md px-3 py-2" rows="2" placeholder="Brief description of what you're testing"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Hypothesis</label>
+                        <textarea name="hypothesis" required class="w-full border border-gray-300 rounded-md px-3 py-2" rows="2" placeholder="What you expect to happen and why"></textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Success Metrics</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="success_metrics" value="latency" class="mr-2">
+                                <span class="text-sm">Latency (Response Time)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="success_metrics" value="cost" class="mr-2">
+                                <span class="text-sm">Cost (USD per Request)</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="success_metrics" value="success_rate" class="mr-2">
+                                <span class="text-sm">Success Rate</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="success_metrics" value="quality" class="mr-2">
+                                <span class="text-sm">Output Quality</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Min Sample Size</label>
+                            <input type="number" name="min_sample_size" value="100" min="50" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Duration (hours)</label>
+                            <input type="number" name="max_duration_hours" value="168" min="24" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="auto_conclude" checked class="mr-2">
+                            <span class="text-sm">Auto-conclude when significant</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="auto_implement" class="mr-2">
+                            <span class="text-sm">Auto-implement winner</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="submitCreateTest()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
+                    Create Test
+                </button>
+                <button type="button" onclick="closeCreateTestModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Details Modal -->
+<div id="test-details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
+        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="test-details-title">Test Details</h3>
+                    <div id="test-details-actions" class="space-x-2">
+                        <!-- Action buttons will be added dynamically -->
+                    </div>
+                </div>
+                <div id="test-details-content">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="closeTestDetailsModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables
+let dashboardData = null;
+let charts = {};
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    initializeTabs();
+});
+
+// Tab functionality
+function initializeTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+            
+            // Update active button
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Update active content
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+}
+
+// Load dashboard data
+async function loadDashboardData() {
+    try {
+        showLoading(true);
+        hideError();
+
+        const response = await fetch('/ml/api/insights/dashboard');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        dashboardData = await response.json();
+        
+        if (dashboardData.error) {
+            throw new Error(dashboardData.error);
+        }
+
+        updateDashboard();
+        showLoading(false);
+
+    } catch (error) {
+        console.error('Error loading dashboard:', error);
+        showError(error.message);
+        showLoading(false);
+    }
+}
+
+// Update dashboard with data
+function updateDashboard() {
+    if (!dashboardData) return;
+
+    // Update overview cards
+    document.getElementById('total-prompts').textContent = dashboardData.overview?.total_prompts_analyzed || '0';
+    document.getElementById('patterns-detected').textContent = dashboardData.overview?.patterns_detected || '0';
+    document.getElementById('optimization-opportunities').textContent = dashboardData.top_insights?.find(i => i.type === 'performance')?.value || '0';
+    
+    // Format timestamp
+    if (dashboardData.overview?.analysis_timestamp) {
+        const timestamp = new Date(dashboardData.overview.analysis_timestamp);
+        document.getElementById('analysis-timestamp').textContent = timestamp.toLocaleTimeString();
+    }
+
+    // Update specific sections
+    updatePerformanceDistribution();
+    updateOptimizationOpportunities();
+    updateKeyInsights();
+    updatePatterns();
+    updateRecommendations();
+
+    // Show dashboard
+    document.getElementById('dashboard-content').style.display = 'block';
+}
+
+// Update performance distribution chart
+function updatePerformanceDistribution() {
+    const ctx = document.getElementById('performance-chart').getContext('2d');
+    
+    if (charts.performance) {
+        charts.performance.destroy();
+    }
+
+    const distribution = dashboardData.performance_distribution || {};
+    
+    charts.performance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excellent', 'Good', 'Fair', 'Poor'],
+            datasets: [{
+                data: [
+                    distribution.excellent || 0,
+                    distribution.good || 0,
+                    distribution.fair || 0,
+                    distribution.poor || 0
+                ],
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Update optimization opportunities
+function updateOptimizationOpportunities() {
+    const container = document.getElementById('optimization-opportunities-list');
+    const opportunities = dashboardData.optimization_opportunities || [];
+
+    if (opportunities.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No high-impact opportunities detected</p>';
+        return;
+    }
+
+    container.innerHTML = opportunities.map(opp => `
+        <div class="opportunity-item p-3 bg-gray-50 rounded mb-2">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="font-medium text-sm">Prompt ${opp.prompt_id}</div>
+                    <div class="text-xs text-gray-600">
+                        Potential: ${(opp.optimization_potential * 100).toFixed(0)}% | 
+                        Executions: ${opp.total_executions}
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-medium">${opp.current_latency_ms.toFixed(0)}ms</div>
+                    <div class="text-xs text-gray-600">$${opp.current_cost_usd.toFixed(3)}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update key insights
+function updateKeyInsights() {
+    const container = document.getElementById('key-insights');
+    const insights = dashboardData.top_insights || [];
+
+    if (insights.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No key insights available</p>';
+        return;
+    }
+
+    container.innerHTML = insights.map(insight => `
+        <div class="insight-item">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-medium">${insight.title}</div>
+                    <div class="text-sm text-gray-600">${insight.description}</div>
+                </div>
+                <div class="text-2xl font-bold text-blue-600">${insight.value}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update patterns
+function updatePatterns() {
+    const container = document.getElementById('patterns-list');
+    const patterns = dashboardData.recent_patterns || [];
+
+    if (patterns.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No performance patterns detected</p>';
+        return;
+    }
+
+    container.innerHTML = patterns.map(pattern => `
+        <div class="pattern-item">
+            <div class="flex justify-between items-start mb-2">
+                <div class="font-medium capitalize">${pattern.type.replace('_', ' ')}</div>
+                <div class="text-sm font-medium">${(pattern.confidence * 100).toFixed(0)}% confidence</div>
+            </div>
+            <div class="text-sm text-gray-700">${pattern.description}</div>
+            <div class="text-xs text-gray-500 mt-1">Frequency: ${pattern.frequency} occurrences</div>
+        </div>
+    `).join('');
+}
+
+// Update recommendations preview
+function updateRecommendations() {
+    const container = document.getElementById('recommendations-list');
+    const recommendations = dashboardData.recommendations_preview || [];
+
+    if (recommendations.length === 0) {
+        container.innerHTML = '<p class="text-gray-500">No recommendations available</p>';
+        return;
+    }
+
+    container.innerHTML = recommendations.map(rec => `
+        <div class="recommendation-item priority-${rec.impact}">
+            <div class="flex justify-between items-start mb-2">
+                <div class="font-medium">${rec.title}</div>
+                <div class="text-sm font-medium capitalize bg-gray-100 px-2 py-1 rounded">${rec.impact}</div>
+            </div>
+            <div class="text-sm text-gray-700">${rec.description}</div>
+            <button 
+                class="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                onclick="viewRecommendation('${rec.type}')">
+                View Details →
+            </button>
+        </div>
+    `).join('');
+}
+
+// View recommendation details
+function viewRecommendation(type) {
+    document.getElementById('modal-title').textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Optimization`;
+    document.getElementById('modal-content').innerHTML = `
+        <p class="text-gray-600 mb-4">Loading detailed recommendations for ${type}...</p>
+        <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+    `;
+    
+    document.getElementById('recommendation-modal').classList.remove('hidden');
+    
+    // Load detailed recommendation data
+    loadRecommendationDetails(type);
+}
+
+// Load recommendation details
+async function loadRecommendationDetails(type) {
+    try {
+        const response = await fetch(`/ml/api/recommendations?category=${type}&priority=high`);
+        if (!response.ok) throw new Error('Failed to load recommendations');
+        
+        const data = await response.json();
+        const recommendations = data.recommendations || [];
+        
+        if (recommendations.length === 0) {
+            document.getElementById('modal-content').innerHTML = '<p class="text-gray-500">No specific recommendations available for this category.</p>';
+            return;
+        }
+        
+        const rec = recommendations[0]; // Show first recommendation
+        document.getElementById('modal-content').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="font-medium text-gray-900">Description</h4>
+                    <p class="text-sm text-gray-600">${rec.description}</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900">Expected Impact</h4>
+                    <ul class="text-sm text-gray-600 list-disc list-inside">
+                        ${Object.entries(rec.expected_impact || {}).map(([key, value]) => 
+                            `<li>${key.replace('_', ' ')}: ${(value * 100).toFixed(1)}% improvement</li>`
+                        ).join('')}
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900">Implementation</h4>
+                    <p class="text-sm text-gray-600">
+                        <strong>Effort:</strong> ${rec.implementation_effort} | 
+                        <strong>Timeframe:</strong> ${rec.timeframe}
+                    </p>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium text-gray-900">Actions</h4>
+                    <ul class="text-sm text-gray-600 list-disc list-inside">
+                        ${(rec.specific_actions || []).map(action => `<li>${action}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        document.getElementById('modal-content').innerHTML = `<p class="text-red-600">Error loading recommendation details: ${error.message}</p>`;
+    }
+}
+
+// Close modal
+function closeModal() {
+    document.getElementById('recommendation-modal').classList.add('hidden');
+}
+
+// Utility functions
+function showLoading(show) {
+    document.getElementById('loading').style.display = show ? 'block' : 'none';
+}
+
+function showError(message) {
+    document.getElementById('error-message').textContent = message;
+    document.getElementById('error').style.display = 'block';
+}
+
+function hideError() {
+    document.getElementById('error').style.display = 'none';
+}
+
+// Refresh dashboard data
+function refreshDashboard() {
+    loadDashboardData();
+}
+
+// Set up auto-refresh (every 5 minutes)
+setInterval(refreshDashboard, 5 * 60 * 1000);
+
+// =============================================================================
+// A/B Testing Functions
+// =============================================================================
+
+let abTestingData = {
+    activeTests: [],
+    completedTests: [],
+    statistics: {}
+};
+
+// Tab handling - update to load A/B testing data when tab is selected
+const originalTabFunction = initializeTabs;
+function initializeTabs() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+            
+            // Update active button
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            // Update active content
+            tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            // Load data for A/B testing tab
+            if (tabId === 'ab-testing') {
+                loadABTestingData();
+            }
+        });
+    });
+}
+
+// Load A/B testing data
+async function loadABTestingData() {
+    try {
+        // Load active tests
+        const activeResponse = await fetch('/ml/api/ab-tests/active');
+        if (activeResponse.ok) {
+            const activeData = await activeResponse.json();
+            abTestingData.activeTests = activeData.active_tests || [];
+        }
+        
+        // Load all tests for statistics
+        const allTestsResponse = await fetch('/ml/api/ab-tests?limit=100');
+        if (allTestsResponse.ok) {
+            const allData = await allTestsResponse.json();
+            calculateABTestingStatistics(allData.tests || []);
+        }
+        
+        updateABTestingDashboard();
+        
+    } catch (error) {
+        console.error('Error loading A/B testing data:', error);
+    }
+}
+
+// Calculate A/B testing statistics
+function calculateABTestingStatistics(allTests) {
+    const activeTests = allTests.filter(t => t.status === 'running');
+    const completedTests = allTests.filter(t => t.status === 'completed');
+    
+    let totalVariantsTested = 0;
+    let totalImprovements = [];
+    
+    completedTests.forEach(test => {
+        totalVariantsTested += test.variants_count || 0;
+        if (test.winning_variant_id) {
+            // Simulate improvement percentage - in real implementation this would come from analysis
+            totalImprovements.push(Math.random() * 30); // 0-30% improvement
+        }
+    });
+    
+    abTestingData.statistics = {
+        activeTestsCount: activeTests.length,
+        completedTestsCount: completedTests.length,
+        totalVariantsTested: totalVariantsTested,
+        avgImprovement: totalImprovements.length > 0 ? 
+            (totalImprovements.reduce((a, b) => a + b, 0) / totalImprovements.length) : 0
+    };
+}
+
+// Update A/B testing dashboard
+function updateABTestingDashboard() {
+    // Update overview cards
+    document.getElementById('active-tests-count').textContent = abTestingData.statistics.activeTestsCount || 0;
+    document.getElementById('completed-tests-count').textContent = abTestingData.statistics.completedTestsCount || 0;
+    document.getElementById('total-variants-tested').textContent = abTestingData.statistics.totalVariantsTested || 0;
+    document.getElementById('avg-improvement').textContent = abTestingData.statistics.avgImprovement > 0 ? 
+        `${abTestingData.statistics.avgImprovement.toFixed(1)}%` : '-';
+    
+    // Update active tests
+    updateActiveABTests();
+    updateRecentTestResults();
+}
+
+// Update active A/B tests display
+function updateActiveABTests() {
+    const container = document.getElementById('active-ab-tests');
+    const noTestsMessage = document.getElementById('no-active-tests');
+    
+    if (abTestingData.activeTests.length === 0) {
+        container.innerHTML = '';
+        noTestsMessage.style.display = 'block';
+        return;
+    }
+    
+    noTestsMessage.style.display = 'none';
+    
+    container.innerHTML = abTestingData.activeTests.map(test => `
+        <div class="test-card">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h5 class="font-medium text-gray-900">${test.name}</h5>
+                    <p class="text-sm text-gray-600">${test.test_id}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="test-status-${test.status}">${test.status}</span>
+                    <button onclick="viewTestDetails('${test.test_id}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                        View →
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                    <div class="text-gray-500">Variants</div>
+                    <div class="font-medium">${test.variants_count || 0}</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">Results</div>
+                    <div class="font-medium">${test.results_count || 0}</div>
+                </div>
+                <div>
+                    <div class="text-gray-500">Started</div>
+                    <div class="font-medium">${test.start_time ? new Date(test.start_time).toLocaleDateString() : 'Not started'}</div>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <div class="text-sm text-gray-500 mb-1">Progress</div>
+                <div class="variant-bar">
+                    <div class="variant-progress" style="width: ${Math.min(100, (test.results_count / 100) * 100)}%"></div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">${test.results_count || 0} / 100+ samples</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update recent test results
+function updateRecentTestResults() {
+    const container = document.getElementById('recent-test-results');
+    
+    // For now, show placeholder - in real implementation this would show completed tests
+    container.innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+            <div class="mb-2">Recent test results will appear here</div>
+            <div class="text-sm">Complete some A/B tests to see results and insights</div>
+        </div>
+    `;
+}
+
+// Create new test modal
+function createNewTest() {
+    document.getElementById('create-test-modal').classList.remove('hidden');
+}
+
+function closeCreateTestModal() {
+    document.getElementById('create-test-modal').classList.add('hidden');
+    document.getElementById('create-test-form').reset();
+}
+
+// Submit create test form
+async function submitCreateTest() {
+    try {
+        const form = document.getElementById('create-test-form');
+        const formData = new FormData(form);
+        
+        // Get checked success metrics
+        const successMetrics = [];
+        const metricCheckboxes = form.querySelectorAll('input[name="success_metrics"]:checked');
+        metricCheckboxes.forEach(cb => successMetrics.push(cb.value));
+        
+        if (successMetrics.length === 0) {
+            alert('Please select at least one success metric');
+            return;
+        }
+        
+        // Create test data
+        const testData = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            hypothesis: formData.get('hypothesis'),
+            success_metrics: successMetrics,
+            min_sample_size: parseInt(formData.get('min_sample_size')),
+            max_duration_hours: parseInt(formData.get('max_duration_hours')),
+            auto_conclude: formData.get('auto_conclude') === 'on',
+            auto_implement: formData.get('auto_implement') === 'on',
+            traffic_splits: [
+                { variant_id: 'control', percentage: 50, is_control: true },
+                { variant_id: 'variant_1', percentage: 50, is_control: false }
+            ]
+        };
+        
+        const response = await fetch('/ml/api/ab-tests', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(testData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            closeCreateTestModal();
+            
+            // Show success message
+            alert(`Test "${testData.name}" created successfully! Test ID: ${result.test_id}`);
+            
+            // Refresh A/B testing data
+            loadABTestingData();
+        } else {
+            const error = await response.json();
+            alert(`Error creating test: ${error.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error creating test:', error);
+        alert(`Error creating test: ${error.message}`);
+    }
+}
+
+// View test details
+async function viewTestDetails(testId) {
+    try {
+        const response = await fetch(`/ml/api/ab-tests/${testId}`);
+        if (!response.ok) {
+            throw new Error('Failed to load test details');
+        }
+        
+        const testData = await response.json();
+        
+        document.getElementById('test-details-title').textContent = testData.name || testId;
+        
+        // Add action buttons based on test status
+        const actionsContainer = document.getElementById('test-details-actions');
+        let actionButtons = '';
+        
+        if (testData.status === 'draft') {
+            actionButtons = `
+                <button onclick="generateTestVariants('${testId}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                    Generate Variants
+                </button>
+                <button onclick="startTest('${testId}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                    Start Test
+                </button>
+            `;
+        } else if (testData.status === 'running') {
+            actionButtons = `
+                <button onclick="analyzeTest('${testId}')" class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700">
+                    Analyze
+                </button>
+                <button onclick="stopTest('${testId}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                    Stop Test
+                </button>
+            `;
+        }
+        
+        actionsContainer.innerHTML = actionButtons;
+        
+        // Display test details
+        document.getElementById('test-details-content').innerHTML = `
+            <div class="space-y-6">
+                <!-- Test Overview -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Test Information</h4>
+                        <dl class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Status:</dt>
+                                <dd><span class="test-status-${testData.status}">${testData.status}</span></dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Started:</dt>
+                                <dd>${testData.start_time ? new Date(testData.start_time).toLocaleString() : 'Not started'}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Progress:</dt>
+                                <dd>${(testData.progress * 100).toFixed(1)}%</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-2">Results Summary</h4>
+                        <dl class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Total Results:</dt>
+                                <dd>${testData.results_count}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Min Sample:</dt>
+                                <dd>${testData.min_sample_size}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-gray-500">Winner:</dt>
+                                <dd>${testData.winning_variant_id || 'TBD'}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+                
+                <!-- Variants -->
+                <div>
+                    <h4 class="font-medium text-gray-900 mb-3">Variants</h4>
+                    <div class="space-y-3">
+                        ${testData.variants.map(variant => `
+                            <div class="border rounded-lg p-3">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-medium">${variant.name}</div>
+                                        <div class="text-xs text-gray-500">${variant.variant_id}</div>
+                                    </div>
+                                    ${variant.is_control ? '<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Control</span>' : ''}
+                                </div>
+                                
+                                <div class="grid grid-cols-4 gap-4 text-sm">
+                                    <div>
+                                        <div class="text-gray-500">Requests</div>
+                                        <div class="font-medium">${variant.requests_served}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500">Success Rate</div>
+                                        <div class="font-medium">${(variant.success_rate * 100).toFixed(1)}%</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500">Avg Latency</div>
+                                        <div class="font-medium">${variant.avg_latency_ms.toFixed(0)}ms</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500">Avg Cost</div>
+                                        <div class="font-medium">$${variant.avg_cost_usd.toFixed(4)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- Analysis Results -->
+                ${testData.latest_analysis ? `
+                    <div>
+                        <h4 class="font-medium text-gray-900 mb-3">Latest Analysis</h4>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="text-gray-500">Recommendation</div>
+                                    <div class="font-medium">${testData.latest_analysis.recommendation}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-500">Confidence</div>
+                                    <div class="font-medium">${(testData.latest_analysis.recommendation_confidence * 100).toFixed(0)}%</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-500">Statistical Significance</div>
+                                    <div class="font-medium">${testData.latest_analysis.statistical_significance ? testData.latest_analysis.statistical_significance.toFixed(4) : 'N/A'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-500">Sample Size Adequate</div>
+                                    <div class="font-medium">${testData.latest_analysis.sample_size_adequate ? 'Yes' : 'No'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        document.getElementById('test-details-modal').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error loading test details:', error);
+        alert(`Error loading test details: ${error.message}`);
+    }
+}
+
+function closeTestDetailsModal() {
+    document.getElementById('test-details-modal').classList.add('hidden');
+}
+
+// Generate test variants (placeholder implementation)
+function generateTestVariants(testId) {
+    alert('Variant generation feature coming soon! This will use AI to create optimized prompt variants.');
+}
+
+// Start test
+async function startTest(testId) {
+    try {
+        const response = await fetch(`/ml/api/ab-tests/${testId}/start`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            alert('Test started successfully!');
+            closeTestDetailsModal();
+            loadABTestingData();
+        } else {
+            const error = await response.json();
+            alert(`Error starting test: ${error.error}`);
+        }
+    } catch (error) {
+        console.error('Error starting test:', error);
+        alert(`Error starting test: ${error.message}`);
+    }
+}
+
+// Stop test
+async function stopTest(testId) {
+    if (!confirm('Are you sure you want to stop this test?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/ml/api/ab-tests/${testId}/stop`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                reason: 'Manual stop by user'
+            })
+        });
+        
+        if (response.ok) {
+            alert('Test stopped successfully!');
+            closeTestDetailsModal();
+            loadABTestingData();
+        } else {
+            const error = await response.json();
+            alert(`Error stopping test: ${error.error}`);
+        }
+    } catch (error) {
+        console.error('Error stopping test:', error);
+        alert(`Error stopping test: ${error.message}`);
+    }
+}
+
+// Analyze test
+async function analyzeTest(testId) {
+    try {
+        const response = await fetch(`/ml/api/ab-tests/${testId}/analyze`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            const analysis = await response.json();
+            alert(`Analysis completed! Status: ${analysis.status}`);
+            
+            // Refresh test details
+            viewTestDetails(testId);
+        } else {
+            const error = await response.json();
+            alert(`Error analyzing test: ${error.error}`);
+        }
+    } catch (error) {
+        console.error('Error analyzing test:', error);
+        alert(`Error analyzing test: ${error.message}`);
+    }
+}
+
+// Refresh A/B tests
+function refreshABTests() {
+    loadABTestingData();
+}
+</script>
+{% endblock %}

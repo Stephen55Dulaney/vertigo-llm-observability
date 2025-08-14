@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Page Header -->
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+            <div>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshMetrics()">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                </button>
+                <button class="btn btn-outline-success btn-sm ms-2" onclick="checkVertigoStatus()">
+                    <i class="bi bi-check-circle me-1"></i>Cloud Status
+                </button>
+                <button class="btn btn-outline-info btn-sm ms-2" onclick="testEmailProcessor()">
+                    <i class="bi bi-envelope me-1"></i>Test Email
+                </button>
+                <button class="btn btn-outline-warning btn-sm ms-2" onclick="testMeetingProcessor()">
+                    <i class="bi bi-chat-dots me-1"></i>Test Meeting
+                </button>
+                <a href="{{ url_for('dashboard.advanced_evaluation') }}" class="btn btn-outline-purple btn-sm ms-2">
+                    <i class="bi bi-graph-up me-1"></i>Advanced Evaluation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Traces (24h)
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-traces">
+                            {{ metrics.total_traces }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-graph-up fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Success Rate (24h)
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="success-rate">
+                            {{ metrics.success_rate }}%
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Avg Latency (24h)
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="avg-latency">
+                            {{ metrics.avg_latency }}ms
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Total Cost (24h)
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-cost">
+                            ${{ "%.4f"|format(metrics.total_cost) }}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-currency-dollar fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Performance Overview</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots-vertical fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                        <a class="dropdown-item" href="#" onclick="updateChart('7')">Last 7 days</a>
+                        <a class="dropdown-item" href="#" onclick="updateChart('30')">Last 30 days</a>
+                        <a class="dropdown-item" href="#" onclick="updateChart('90')">Last 90 days</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Cost Breakdown</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie pt-4 pb-2">
+                    <canvas id="costChart"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-primary"></i> Gemini
+                    </span>
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-success"></i> GPT-4
+                    </span>
+                    <span class="mr-2">
+                        <i class="bi bi-circle-fill text-info"></i> Claude
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Row -->
+<div class="row">
+    <!-- Recent Traces -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Traces</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_traces %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Trace ID</th>
+                                <th>Operation</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trace in recent_traces %}
+                            <tr>
+                                <td>
+                                    <small class="text-muted">{{ trace.trace_id[:8] }}...</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ trace.vertigo_operation or 'Unknown' }}</span>
+                                </td>
+                                <td>
+                                    {% if trace.status == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                    {% elif trace.status == 'error' %}
+                                        <span class="badge bg-danger">Error</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ trace.duration_ms or 0 }}ms</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">No recent traces found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Alerts -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Active Alerts</h6>
+            </div>
+            <div class="card-body">
+                {% if active_alerts %}
+                <div class="list-group list-group-flush">
+                    {% for alert in active_alerts %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ alert.name }}</h6>
+                            <small class="text-muted">{{ alert.alert_type }} - Threshold: {{ alert.threshold }}</small>
+                        </div>
+                        <span class="badge bg-danger rounded-pill">Active</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No active alerts.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('prompts.index') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-chat-quote me-2"></i>Manage Prompts
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('performance.index') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-graph-up me-2"></i>View Performance
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('costs.index') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-currency-dollar me-2"></i>Cost Analysis
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button onclick="simulateWorkflow()" class="btn btn-outline-success w-100">
+                            <i class="bi bi-play-circle me-2"></i>Test Workflow
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Performance Chart - references will be stored on canvas elements
+let performanceChart = null;
+let costChart = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Charts are initialized in app.js, just load metrics
+    loadMetrics();
+});
+
+// Cleanup charts when page is unloaded
+window.addEventListener('beforeunload', function() {
+    const performanceCanvas = document.getElementById('performanceChart');
+    const costCanvas = document.getElementById('costChart');
+    
+    if (performanceCanvas && performanceCanvas.chart) {
+        performanceCanvas.chart.destroy();
+        performanceCanvas.chart = null;
+    }
+    if (costCanvas && costCanvas.chart) {
+        costCanvas.chart.destroy();
+        costCanvas.chart = null;
+    }
+});
+
+function loadMetrics() {
+    fetch('/dashboard/api/metrics?days=7')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                console.error('API returned error:', data.error);
+                return;
+            }
+            updatePerformanceChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading metrics:', error);
+        });
+}
+
+function updatePerformanceChart(data) {
+    // Check if performance data exists and has the expected structure
+    if (!data || !data.performance || !Array.isArray(data.performance)) {
+        console.warn('No performance data available for chart update');
+        return;
+    }
+    
+    try {
+        const labels = data.performance.map(p => p.date);
+        const traces = data.performance.map(p => p.total_traces || 0);
+        const errors = data.performance.map(p => p.error_count || 0);
+
+        // Get chart reference from canvas
+        const performanceCanvas = document.getElementById('performanceChart');
+        if (performanceCanvas && performanceCanvas.chart) {
+            const chart = performanceCanvas.chart;
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = traces;
+            chart.data.datasets[1].data = errors;
+            chart.update();
+        } else {
+            console.warn('Performance chart not initialized');
+        }
+    } catch (error) {
+        console.error('Error updating performance chart:', error);
+    }
+}
+
+function updateChart(days) {
+    fetch(`/dashboard/api/metrics?days=${days}`)
+        .then(response => response.json())
+        .then(data => {
+            updatePerformanceChart(data);
+        })
+        .catch(error => {
+            console.error('Error updating chart:', error);
+        });
+}
+
+function refreshMetrics() {
+    location.reload();
+}
+
+function checkVertigoStatus() {
+    fetch('/dashboard/api/cloud-status')
+        .then(response => response.json())
+        .then(data => {
+            let message = `🌐 Vertigo Cloud Services Status\n\n`;
+            message += `Overall Status: ${data.overall_status === 'healthy' ? '✅ Healthy' : '❌ Unhealthy'}\n`;
+            message += `Critical Services Down: ${data.critical_services_down}\n`;
+            message += `Total Services: ${data.total_services}\n\n`;
+            
+            message += `📊 Service Details:\n`;
+            Object.values(data.services).forEach(service => {
+                const statusIcon = service.status === 'healthy' ? '✅' : '❌';
+                const statusText = service.status === 'healthy' ? 'Healthy' : 
+                                 service.status === 'timeout' ? 'Timeout' :
+                                 service.status === 'connection_error' ? 'Connection Error' : 'Error';
+                
+                message += `${statusIcon} ${service.name}: ${statusText}\n`;
+                if (service.status === 'healthy' && service.response_time) {
+                    message += `   Response Time: ${service.response_time.toFixed(2)}s\n`;
+                }
+                if (service.error) {
+                    message += `   Error: ${service.error}\n`;
+                }
+                message += '\n';
+            });
+            
+            alert(message);
+        })
+        .catch(error => {
+            console.error('Error checking Vertigo status:', error);
+            alert('❌ Error checking Vertigo cloud services status');
+        });
+}
+
+function testEmailProcessor() {
+    fetch('/dashboard/api/vertigo/test-email-processor')
+        .then(response => response.json())
+        .then(data => {
+            let message = `📧 Email Processor Test Results\n\n`;
+            message += `Status: ${data.test_status === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `HTTP Status: ${data.status_code}\n`;
+            if (data.response) {
+                message += `Response: ${data.response.substring(0, 200)}...\n`;
+            }
+            if (data.error) {
+                message += `Error: ${data.error}\n`;
+            }
+            alert(message);
+        })
+        .catch(error => {
+            console.error('Error testing email processor:', error);
+            alert('❌ Error testing email processor');
+        });
+}
+
+function testMeetingProcessor() {
+    fetch('/dashboard/api/vertigo/test-meeting-processor')
+        .then(response => response.json())
+        .then(data => {
+            let message = `📝 Meeting Processor Test Results\n\n`;
+            message += `Status: ${data.test_status === 'success' ? '✅ Success' : '❌ Failed'}\n`;
+            message += `HTTP Status: ${data.status_code}\n`;
+            if (data.response) {
+                message += `Response: ${data.response.substring(0, 200)}...\n`;
+            }
+            if (data.error) {
+                message += `Error: ${data.error}\n`;
+            }
+            alert(message);
+        })
+        .catch(error => {
+            console.error('Error testing meeting processor:', error);
+            alert('❌ Error testing meeting processor');
+        });
+}
+
+function simulateWorkflow() {
+    fetch('/api/simulate/workflow')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Workflow simulation completed successfully!');
+                location.reload();
+            } else {
+                alert('Error simulating workflow: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error simulating workflow');
+        });
+}
+</script>
+{% endblock %} 

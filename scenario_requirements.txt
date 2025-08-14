@@ -1,0 +1,39 @@
+# Vertigo Scenario Framework Requirements
+# Core dependencies for scenario testing and evaluation
+
+# Langfuse for tracing and evaluation
+langfuse>=2.0.0
+
+# Google Cloud services
+google-cloud-firestore>=2.0.0
+google-cloud-functions>=1.0.0
+google-cloud-secret-manager>=2.0.0
+
+# Web framework and utilities
+flask>=2.0.0
+requests>=2.25.0
+
+# Data processing and analysis
+pandas>=1.3.0
+numpy>=1.21.0
+
+# Testing and evaluation
+pytest>=6.0.0
+pytest-asyncio>=0.15.0
+
+# Environment and configuration
+python-dotenv>=0.19.0
+pydantic>=1.8.0
+
+# Async support
+aiohttp>=3.8.0
+asyncio-mqtt>=0.11.0
+
+# Logging and monitoring
+structlog>=21.0.0
+prometheus-client>=0.11.0
+
+# Development tools
+black>=21.0.0
+flake8>=3.9.0
+mypy>=0.910

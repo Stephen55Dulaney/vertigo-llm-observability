@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Cost Tracking - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>💰 Cost Tracking</h1>
+            <p class="lead">Track LLM usage costs and optimize your AI spending for the Vertigo agent.</p>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Cost Overview</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="costChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Monthly Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 id="total-cost">$0.00</h4>
+                            <small class="text-muted">Total Cost</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 id="total-tokens">0</h4>
+                            <small class="text-muted">Total Tokens</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 id="avg-cost">$0.00</h5>
+                            <small class="text-muted">Avg/Request</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 id="requests">0</h5>
+                            <small class="text-muted">Requests</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Cost Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <span>Gemini Pro</span>
+                        <span id="gemini-cost">$0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Other Models</span>
+                        <span id="other-cost">$0.00</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between font-weight-bold">
+                        <span>Total</span>
+                        <span id="total-breakdown">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Cost Events</h5>
+                </div>
+                <div class="card-body">
+                    <div id="cost-events">
+                        <div class="alert alert-info">
+                            <strong>Coming Soon!</strong> Cost tracking features will be available once LangWatch is fully configured.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('costChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Weekly Cost ($)',
+                data: [12.50, 18.75, 15.20, 22.10],
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

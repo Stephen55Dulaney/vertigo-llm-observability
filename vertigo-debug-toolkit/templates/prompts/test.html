@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Test Prompt - {{ prompt.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-play-circle me-2"></i>Test Prompt: {{ prompt.name }}</h1>
+                <p class="text-muted mb-0">Version {{ prompt.version }} • {{ prompt.prompt_type|replace('_', ' ')|title }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('prompts.view_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-eye me-1"></i>View Details
+                </a>
+                <a href="{{ url_for('prompts.edit_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square me-1"></i>Edit
+                </a>
+                <a href="{{ url_for('prompts.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Prompts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' if category == 'info' else 'warning' }} alert-dismissible fade show" role="alert">
+                <i class="bi {{ 'bi-exclamation-triangle-fill' if category == 'error' else 'bi-check-circle-fill' if category == 'success' else 'bi-info-circle-fill' if category == 'info' else 'bi-exclamation-triangle' }} me-2"></i>
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <!-- Main Testing Area -->
+    <div class="col-lg-8">
+        
+        <!-- Test Parameters Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Test Parameters</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="project" class="form-label">Project Name</label>
+                            <input type="text" class="form-control" id="project" name="project" 
+                                   value="{{ request.form.get('project', 'Vertigo Debug Toolkit') }}"
+                                   placeholder="Enter project name">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quick Actions</label>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-play-fill me-1"></i>Test Prompt
+                                </button>
+                                <button type="button" onclick="loadSampleData()" class="btn btn-outline-secondary">
+                                    <i class="bi bi-file-text me-1"></i>Load Sample
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="transcript" class="form-label">Sample Content</label>
+                        <textarea class="form-control" id="transcript" name="transcript" rows="8" 
+                                  placeholder="Enter sample meeting transcript, daily activities, or content to test this prompt...">{{ request.form.get('transcript', '') }}</textarea>
+                        <div class="form-text">
+                            Enter the content you want to test with this prompt. For persona generation, paste interview transcripts here.
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Prompt Preview Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-code-square me-2"></i>Prompt Preview</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded mb-0" style="white-space: pre-wrap; font-size: 0.875rem; max-height: 300px; overflow-y: auto;">{{ formatted_prompt or 'Enter test parameters above to see the formatted prompt...' }}</pre>
+            </div>
+        </div>
+
+        <!-- Test Results Card -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Test Results</h5>
+                {% if llm_response %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle me-1"></i>Success
+                    </span>
+                {% elif error_message %}
+                    <span class="badge bg-danger">
+                        <i class="bi bi-exclamation-triangle me-1"></i>Error
+                    </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if llm_response %}
+                    <div class="alert alert-success border-0 mb-3">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Real AI Response from Gemini</strong> - LangWatch trace created for analysis
+                    </div>
+                    <div class="bg-white border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                        <div class="text-muted small mb-2">AI Generated Response:</div>
+                        <div style="white-space: pre-wrap;">{{ llm_response }}</div>
+                    </div>
+                {% elif error_message %}
+                    <div class="alert alert-danger border-0 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Unable to process prompt</strong>
+                    </div>
+                    <div class="bg-light border rounded p-3">
+                        <div class="text-muted small mb-2">Error Details:</div>
+                        <div class="text-danger">{{ error_message }}</div>
+                        {% if 'variable' in error_message.lower() %}
+                        <hr class="my-2">
+                        <div class="text-muted small">
+                            <strong>Tip:</strong> Check that your prompt template uses only the available variables listed in the sidebar.
+                        </div>
+                        {% endif %}
+                    </div>
+                {% elif request.form.get('transcript') %}
+                    <div class="alert alert-warning border-0 mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>No response generated</strong>
+                    </div>
+                    <div class="text-muted">
+                        <p class="mb-2">This might indicate:</p>
+                        <ul class="small mb-0">
+                            <li>Gemini API configuration issue</li>
+                            <li>Network connectivity problem</li>
+                            <li>API key not set correctly</li>
+                        </ul>
+                        <p class="mt-2 mb-0"><strong>Next steps:</strong> Check your API keys in the environment configuration and try again.</p>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-play-circle text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="text-muted mt-2">Ready to Test</h6>
+                        <p class="text-muted mb-0">Enter test parameters above and click "Test Prompt" to see real LLM results.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        
+        <!-- Prompt Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Prompt Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <div class="fw-bold text-primary">{{ prompt.usage_count or 0 }}</div>
+                            <small class="text-muted">Total Uses</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="fw-bold text-success">Active</div>
+                        <small class="text-muted">Status</small>
+                    </div>
+                </div>
+                
+                <hr class="my-3">
+                
+                <div class="small">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Type:</span>
+                        <span class="badge bg-primary">{{ prompt.prompt_type|replace('_', ' ')|title }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Version:</span>
+                        <span>{{ prompt.version }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Last Updated:</span>
+                        <span>{{ prompt.updated_at.strftime('%m/%d/%Y') if prompt.updated_at else 'Unknown' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Variables Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-braces me-2"></i>Available Variables</h6>
+            </div>
+            <div class="card-body">
+                <div class="small">
+                    <div class="mb-2">
+                        <code class="text-danger">{transcript}</code>
+                        <div class="text-muted">Meeting or interview content</div>
+                    </div>
+                    <div class="mb-2">
+                        <code class="text-danger">{project}</code>
+                        <div class="text-muted">Project name context</div>
+                    </div>
+                    <div class="mb-2">
+                        <code class="text-danger">{date}</code>
+                        <div class="text-muted">Current date</div>
+                    </div>
+                    <div class="mb-0">
+                        <code class="text-danger">{participants}</code>
+                        <div class="text-muted">List of participants</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Tips Card -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Testing Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="small list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check2 text-success me-1"></i>
+                        Use realistic sample data for accurate results
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check2 text-success me-1"></i>
+                        Test with different content lengths
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check2 text-success me-1"></i>
+                        Check LangWatch traces for performance metrics
+                    </li>
+                    <li class="mb-0">
+                        <i class="bi bi-check2 text-success me-1"></i>
+                        Compare results across prompt versions
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadSampleData() {
+    const promptType = '{{ prompt.prompt_type }}';
+    
+    const sampleData = {
+        'meeting_analysis': {
+            project: 'Product Strategy Meeting',
+            transcript: `John: Let's discuss the Q4 roadmap. We have three major initiatives to consider.
+
+Sarah: I think we should prioritize the mobile app improvements. Our user feedback has been consistently pointing to performance issues.
+
+Mike: I agree with Sarah, but we also need to consider the API redesign. It's blocking several partner integrations.
+
+John: Good points. Let's allocate 60% of our resources to mobile improvements and 40% to the API work. We can defer the dashboard updates to Q1.
+
+Sarah: That sounds reasonable. I'll prepare the mobile improvement specifications by Friday.
+
+Mike: I'll coordinate with the API team and get timeline estimates.`,
+        },
+        'transcript': {
+            project: 'User Research - WhoKnows Interview',
+            transcript: `Interviewer: Tell me about how you typically discover new information for your projects.
+
+Participant: Well, I usually start with Google, but I find myself going down rabbit holes. I'll search for something specific, but then I get distracted by related topics. It's actually pretty inefficient.
+
+Interviewer: What would make that process better for you?
+
+Participant: I think having a way to save and organize what I find as I go would help. Right now I just open tons of tabs and then lose track of what was important. Maybe something that could help me stay focused on my original question while still letting me explore related ideas.
+
+Interviewer: How do you currently validate the information you find?
+
+Participant: Honestly, I don't always. I tend to trust sources that look official, but I know I should be more careful. Cross-referencing takes time though.`,
+        },
+        'daily_summary': {
+            project: 'Team Daily Standup',
+            transcript: `Alice: Yesterday I completed the user authentication module. Today I'm working on the password recovery flow. No blockers.
+
+Bob: I finished the database migrations and deployed to staging. Today I'm starting on the reporting dashboard. I need Alice's auth work to be done before I can test user permissions.
+
+Carol: I completed the UI mockups for the settings page. Today I'm implementing the front-end components. No dependencies.
+
+Alice: Bob, the auth module will be ready by end of day, so you should be unblocked tomorrow.`,
+        }
+    };
+    
+    const data = sampleData[promptType] || sampleData['meeting_analysis'];
+    
+    document.getElementById('project').value = data.project;
+    document.getElementById('transcript').value = data.transcript;
+}
+</script>
+{% endblock %}

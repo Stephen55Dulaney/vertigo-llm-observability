@@ -1,0 +1,306 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vertigo Email vs LLM Test Results Comparison</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f8f9fa;
+                line-height: 1.5;
+            }
+            .container {
+                max-width: 1400px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px 30px;
+                text-align: center;
+            }
+            .header h1 {
+                margin: 0;
+                font-size: 28px;
+                font-weight: 600;
+            }
+            .comparison-container {
+                display: flex;
+                min-height: 600px;
+            }
+            .email-column {
+                flex: 1;
+                padding: 0;
+                border-right: 2px solid #e9ecef;
+            }
+            .email-column:last-child {
+                border-right: none;
+            }
+            .email-header {
+                background: #f8f9fa;
+                padding: 20px 25px;
+                border-bottom: 1px solid #dee2e6;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            .email-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #343a40;
+                margin: 0 0 8px 0;
+                display: flex;
+                align-items: center;
+            }
+            .email-meta {
+                font-size: 14px;
+                color: #6c757d;
+                margin: 4px 0;
+            }
+            .email-content {
+                padding: 25px;
+            }
+            .section {
+                margin-bottom: 25px;
+            }
+            .section-title {
+                font-size: 16px;
+                font-weight: 600;
+                color: #495057;
+                margin-bottom: 12px;
+                padding-bottom: 6px;
+                border-bottom: 2px solid #e9ecef;
+            }
+            .summary {
+                background: #e3f2fd;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #2196f3;
+                font-size: 15px;
+                line-height: 1.6;
+            }
+            .list-item {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 8px;
+                padding: 8px 12px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            .list-item:nth-child(even) {
+                background: #ffffff;
+            }
+            .bullet {
+                color: #007bff;
+                font-weight: bold;
+                margin-right: 8px;
+                flex-shrink: 0;
+            }
+            .participants {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+            .participant {
+                background: #007bff;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 15px;
+                font-size: 13px;
+                font-weight: 500;
+            }
+            .scores {
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                margin-top: 20px;
+            }
+            .score-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 12px;
+                margin-top: 15px;
+            }
+            .score-item {
+                text-align: center;
+                padding: 12px;
+                border-radius: 6px;
+                background: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .score-value {
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 4px;
+            }
+            .score-label {
+                font-size: 12px;
+                color: #6c757d;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .score-excellent { color: #28a745; }
+            .score-good { color: #17a2b8; }
+            .score-fair { color: #ffc107; }
+            .score-poor { color: #dc3545; }
+            .icon {
+                width: 20px;
+                height: 20px;
+                margin-right: 8px;
+            }
+            @media (max-width: 768px) {
+                .comparison-container {
+                    flex-direction: column;
+                }
+                .email-column {
+                    border-right: none;
+                    border-bottom: 2px solid #e9ecef;
+                }
+                .email-column:last-child {
+                    border-bottom: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📧 Vertigo Email vs LLM Test Results</h1>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">Human-Readable Comparison for Stakeholder Review</p>
+            </div>
+            
+            <div class="comparison-container">
+                <!-- Actual Email Column -->
+                <div class="email-column">
+                    <div class="email-header">
+                        <div class="email-title">
+                            📨 Actual Gmail Email
+                        </div>
+                        <div class="email-meta">From: vertigo.agent.2025@gmail.com</div>
+                        <div class="email-meta">To: sdulaney</div>
+                        <div class="email-meta">Subject: Meeting Summary</div>
+                        <div class="email-meta">Time: 9:50 AM (5 hours ago)</div>
+                    </div>
+                    
+                    <div class="email-content">
+                        <div class="section">
+                            <div class="section-title">📝 Meeting Summary</div>
+                            <div class="summary">The team discussed daily planning using "Ambition MD" and its sub-agents, explored Google Agent Space integration, reviewed AI enablement strategy and tools, addressed speed issues, and confirmed access to AI Studio. They also discussed knowledge sharing and platform migration.</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🎯 Key Points</div>
+                            <div class="list-item"><span class="bullet">•</span>Introduction of "Ambition MD" for daily planning</div><div class="list-item"><span class="bullet">•</span>Exploration of Google Agent Space</div><div class="list-item"><span class="bullet">•</span>AI enablement strategy and tool evaluation</div><div class="list-item"><span class="bullet">•</span>Speed issue investigation</div><div class="list-item"><span class="bullet">•</span>Access confirmation for AI Studio and other tools</div><div class="list-item"><span class="bullet">•</span>Knowledge sharing and platform migration</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">✅ Action Items</div>
+                            <div class="list-item"><span class="bullet">→</span>Work on Max migration - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Send strategy and format for tools being investigated - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Track down issue of not getting more traces after successfully getting langu traces - Stephen Dulaney</div><div class="list-item"><span class="bullet">→</span>Share learnings about Google Agent Space platform and write up for the team - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Continue going through base off tool set and share with Bob Schneider and Jay Ma - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Work with Stephen Dulaney on interview style for meeting platform owners, documenting personas, rockstars, and best use cases - Kurt Miller</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🚀 Next Steps</div>
+                            <div class="list-item"><span class="bullet">▶</span>Complete Max migration by end of weekend</div><div class="list-item"><span class="bullet">▶</span>Investigate and share information on various AI tools</div><div class="list-item"><span class="bullet">▶</span>Troubleshoot 'langu traces' issue</div><div class="list-item"><span class="bullet">▶</span>Explore and report on Google Agent Space</div><div class="list-item"><span class="bullet">▶</span>Address speed problem</div><div class="list-item"><span class="bullet">▶</span>Share knowledge on Cursor</div><div class="list-item"><span class="bullet">▶</span>Add Jay Ma to relevant communication channels</div><div class="list-item"><span class="bullet">▶</span>Create technology tips channel</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">👥 Participants</div>
+                            <div class="participants">
+                                <span class="participant">Stephen Dulaney</span><span class="participant">Kurt Miller</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LLM Test Results Column -->
+                <div class="email-column">
+                    <div class="email-header">
+                        <div class="email-title">
+                            🤖 LLM Test Results
+                        </div>
+                        <div class="email-meta">From: LLM Test Engine</div>
+                        <div class="email-meta">To: Evaluation System</div>
+                        <div class="email-meta">Subject: Meeting Analysis Test Results</div>
+                        <div class="email-meta">Time: 06:22 PM</div>
+                    </div>
+                    
+                    <div class="email-content">
+                        <div class="section">
+                            <div class="section-title">📝 Generated Summary</div>
+                            <div class="summary">Executive-level overview of key outcomes from team meeting covering project management tools, AI platform integration, technical issues resolution, and strategic planning initiatives.</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🎯 Identified Points</div>
+                            <div class="list-item"><span class="bullet">•</span>Implementation of "Ambition MD" project management system</div><div class="list-item"><span class="bullet">•</span>Google Agent Space platform evaluation and integration</div><div class="list-item"><span class="bullet">•</span>AI tools strategy development and assessment</div><div class="list-item"><span class="bullet">•</span>Technical debugging and performance optimization</div><div class="list-item"><span class="bullet">•</span>AI Studio access and tool confirmation</div><div class="list-item"><span class="bullet">•</span>Cross-platform migration and knowledge transfer</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">✅ Extracted Actions</div>
+                            <div class="list-item"><span class="bullet">→</span>Complete Max platform migration - Kurt Miller (Weekend deadline)</div><div class="list-item"><span class="bullet">→</span>Document tool evaluation strategy and format - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Debug and resolve trace generation issues - Stephen Dulaney</div><div class="list-item"><span class="bullet">→</span>Create Google Agent Space documentation - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Review and optimize tool performance baseline - Kurt Miller</div><div class="list-item"><span class="bullet">→</span>Develop interview framework for platform assessment - Kurt Miller & Stephen Dulaney</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🚀 Planned Steps</div>
+                            <div class="list-item"><span class="bullet">▶</span>Finalize Max migration timeline and deliverables</div><div class="list-item"><span class="bullet">▶</span>Conduct comprehensive AI tools research and reporting</div><div class="list-item"><span class="bullet">▶</span>Resolve technical tracing and monitoring issues</div><div class="list-item"><span class="bullet">▶</span>Document and share Google Agent Space findings</div><div class="list-item"><span class="bullet">▶</span>Address system performance bottlenecks</div><div class="list-item"><span class="bullet">▶</span>Establish Cursor knowledge sharing protocols</div><div class="list-item"><span class="bullet">▶</span>Expand team communication channels and collaboration</div><div class="list-item"><span class="bullet">▶</span>Create dedicated technology tips and best practices channel</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">👥 Detected Participants</div>
+                            <div class="participants">
+                                <span class="participant">Stephen Dulaney</span><span class="participant">Kurt Miller</span>
+                            </div>
+                        </div>
+                        
+                        <div class="scores">
+                            <div class="section-title">📊 Evaluation Scores</div>
+                            <div class="score-grid">
+    
+                                <div class="score-item">
+                                    <div class="score-value score-good">87%</div>
+                                    <div class="score-label">Accuracy</div>
+                                </div>
+        
+                                <div class="score-item">
+                                    <div class="score-value score-excellent">92%</div>
+                                    <div class="score-label">Relevance</div>
+                                </div>
+        
+                                <div class="score-item">
+                                    <div class="score-value score-good">85%</div>
+                                    <div class="score-label">Completeness</div>
+                                </div>
+        
+                                <div class="score-item">
+                                    <div class="score-value score-excellent">90%</div>
+                                    <div class="score-label">Structure</div>
+                                </div>
+        
+                                <div class="score-item">
+                                    <div class="score-value score-good">88%</div>
+                                    <div class="score-label">Tone</div>
+                                </div>
+        
+                                <div class="score-item">
+                                    <div class="score-value score-good">86%</div>
+                                    <div class="score-label">Factual Precision</div>
+                                </div>
+        
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    

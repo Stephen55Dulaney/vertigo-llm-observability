@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # LangWatch Cloud Service - No local containers needed
+  # Commented out self-hosted LangFuse services (migrated to LangWatch cloud)
+  # langfuse:
+  #   image: langfuse/langfuse:latest
+  #   container_name: langfuse
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - POSTGRES_DB=langfuse
+  #     - POSTGRES_HOST=langfuse-postgres
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_USER=langfuse
+  #     - POSTGRES_PASSWORD=langfuse
+  #     - NEXTAUTH_SECRET=your-secret-key
+  #     - NEXTAUTH_URL=http://localhost:3000
+  #   depends_on:
+  #     - langfuse-postgres
+  #   restart: unless-stopped
+  #   networks:
+  #     - vertigo-network
+  #
+  # # PostgreSQL for Langfuse
+  # langfuse-postgres:
+  #   image: postgres:15
+  #   container_name: langfuse-postgres
+  #   environment:
+  #     - POSTGRES_DB=langfuse
+  #     - POSTGRES_USER=langfuse
+  #     - POSTGRES_PASSWORD=langfuse
+  #   volumes:
+  #     - langfuse-postgres-data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+  #   networks:
+  #     - vertigo-network
+  #
+  # # Redis for Langfuse (optional, for caching)
+  # langfuse-redis:
+  #   image: redis:7-alpine
+  #   container_name: langfuse-redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - vertigo-network
+  
+  # Redis for Vertigo Debug Toolkit caching
+  redis:
+    image: redis:7-alpine
+    container_name: vertigo-redis
+    restart: unless-stopped
+    networks:
+      - vertigo-network
+
+  # Vertigo Debug Toolkit
+  debug-toolkit:
+    build: .
+    container_name: vertigo-debug-toolkit
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - LANGWATCH_API_KEY=${LANGWATCH_API_KEY}
+      - LANGWATCH_PROJECT_ID=${LANGWATCH_PROJECT_ID}
+      - LANGWATCH_HOST=${LANGWATCH_HOST}
+      - VERTIGO_API_URL=${VERTIGO_API_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./app:/app/app
+      - ./templates:/app/templates
+      - ./static:/app/static
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - vertigo-network
+
+  # Nginx reverse proxy (optional, for production)
+  nginx:
+    image: nginx:alpine
+    container_name: vertigo-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - debug-toolkit
+    restart: unless-stopped
+    networks:
+      - vertigo-network
+
+volumes:
+  redis-data:
+
+networks:
+  vertigo-network:
+    driver: bridge 

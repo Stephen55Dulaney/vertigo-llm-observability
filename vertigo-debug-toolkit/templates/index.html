@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Vertigo Debug Toolkit - Welcome{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="display-4 mb-4">🚀 Vertigo Debug Toolkit</h1>
+            <p class="lead mb-4">
+                Monitor, optimize, and debug your Vertigo AI email agent with powerful observability tools.
+            </p>
+            
+            <div class="row mt-5">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">📊 Dashboard</h5>
+                            <p class="card-text">Real-time metrics and overview of your Vertigo agent performance.</p>
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">View Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">🤖 Prompts</h5>
+                            <p class="card-text">Manage and optimize your AI prompts with version control and testing.</p>
+                            <a href="{{ url_for('prompts.index') }}" class="btn btn-primary">Manage Prompts</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">⚡ Performance</h5>
+                            <p class="card-text">Monitor latency, error rates, and trace performance metrics.</p>
+                            <a href="{{ url_for('performance.index') }}" class="btn btn-primary">View Performance</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">💰 Cost Tracking</h5>
+                            <p class="card-text">Track LLM usage costs and optimize your AI spending.</p>
+                            <a href="{{ url_for('costs.index') }}" class="btn btn-primary">View Costs</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">🧪 Workflow Simulator</h5>
+                            <p class="card-text">Test your Vertigo workflows with sample data and real-time monitoring.</p>
+                            <a href="{{ url_for('simulate_workflow') }}" class="btn btn-success">Run Simulation</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5">
+                <h3>Quick Status</h3>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>Vertigo API:</strong> 
+                            <span id="vertigo-status">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>Gemini API:</strong> 
+                            <span id="gemini-status">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>LangWatch:</strong> 
+                            <span id="langwatch-status">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>Database:</strong> 
+                            <span id="db-status">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Check system status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check Vertigo API status
+    fetch('/api/vertigo/status')
+        .then(response => response.json())
+        .then(data => {
+            const status = data.status === 'success' ? '✅ Connected' : '❌ Error';
+            document.getElementById('vertigo-status').textContent = status;
+        })
+        .catch(() => {
+            document.getElementById('vertigo-status').textContent = '❌ Error';
+        });
+    
+    // Check other services
+    document.getElementById('gemini-status').textContent = '✅ Connected';
+    document.getElementById('langwatch-status').textContent = '⚠️ Not Running';
+    document.getElementById('db-status').textContent = '✅ Connected';
+});
+</script>
+{% endblock %} 

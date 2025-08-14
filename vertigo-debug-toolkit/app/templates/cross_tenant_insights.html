@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Tenant Learning Insights - Vertigo Debug Toolkit</title>
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.2/index.min.js"></script>
+    
+    <style>
+        .insight-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .insight-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .insight-card.high-impact {
+            border-left-color: #10B981;
+        }
+        .insight-card.medium-impact {
+            border-left-color: #F59E0B;
+        }
+        .insight-card.low-impact {
+            border-left-color: #6B7280;
+        }
+        .privacy-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .pattern-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        .recommendation-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-semibold text-gray-900">Cross-Tenant Learning Insights</h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="privacy-badge px-3 py-1 rounded-full text-white text-sm">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        Privacy Protected
+                    </div>
+                    <button id="refreshBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm">
+                        <i class="fas fa-sync-alt mr-2"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Loading State -->
+        <div id="loadingState" class="flex justify-center items-center h-64">
+            <div class="text-center">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-gray-600">Loading cross-tenant insights...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden">
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                <div class="flex">
+                    <i class="fas fa-exclamation-triangle text-red-400 mr-3 mt-0.5"></i>
+                    <div>
+                        <h3 class="text-sm font-medium text-red-800">Error Loading Insights</h3>
+                        <p id="errorMessage" class="mt-1 text-sm text-red-700"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden">
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-brain text-blue-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Applicable Patterns
+                                    </dt>
+                                    <dd id="applicablePatternsCount" class="text-lg font-medium text-gray-900">
+                                        -
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-lightbulb text-yellow-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        High-Impact Opportunities
+                                    </dt>
+                                    <dd id="highImpactCount" class="text-lg font-medium text-gray-900">
+                                        -
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chart-line text-green-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Avg Improvement Potential
+                                    </dt>
+                                    <dd id="avgImprovement" class="text-lg font-medium text-gray-900">
+                                        -
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="p-5">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-shield-check text-purple-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        Implementation Readiness
+                                    </dt>
+                                    <dd id="implementationReadiness" class="text-lg font-medium text-gray-900">
+                                        -
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tenant Optimization State -->
+            <div class="bg-white shadow rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Your Optimization State
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-blue-600" id="performanceTier">-</div>
+                            <div class="text-sm text-gray-500">Performance Tier</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600" id="optimizationMaturity">-</div>
+                            <div class="text-sm text-gray-500">Optimization Maturity</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-purple-600" id="patternDiversity">-</div>
+                            <div class="text-sm text-gray-500">Pattern Diversity Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cross-Tenant Patterns -->
+            <div class="bg-white shadow rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Available Cross-Tenant Patterns
+                    </h3>
+                    <div id="patternsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Patterns will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-white shadow rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Cross-Tenant Recommendations
+                    </h3>
+                    <div id="recommendationsContainer">
+                        <!-- Recommendations will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Insights -->
+            <div class="bg-white shadow rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Learning Insights
+                    </h3>
+                    <div id="insightsContainer" class="space-y-4">
+                        <!-- Insights will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Opportunity Metrics Chart -->
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+                        Improvement Opportunities
+                    </h3>
+                    <canvas id="opportunityChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentTenantId = null;
+        let insightsData = null;
+        let opportunityChart = null;
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            
+            // Set up refresh button
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                loadCrossTenantInsights();
+            });
+        });
+
+        async function initializeDashboard() {
+            try {
+                // Get current tenant context
+                currentTenantId = await getCurrentTenantId();
+                if (!currentTenantId) {
+                    throw new Error('No tenant context available');
+                }
+                
+                // Load insights
+                await loadCrossTenantInsights();
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                showError('Failed to initialize dashboard: ' + error.message);
+            }
+        }
+
+        async function getCurrentTenantId() {
+            try {
+                const response = await fetch('/api/v1/tenant/current');
+                if (!response.ok) throw new Error('Failed to get tenant context');
+                const data = await response.json();
+                return data.data.tenant_id;
+            } catch (error) {
+                console.error('Error getting tenant ID:', error);
+                throw error;
+            }
+        }
+
+        async function loadCrossTenantInsights() {
+            try {
+                showLoading();
+                
+                const response = await fetch(`/api/v1/cross-tenant-learning/insights/${currentTenantId}?include_benchmarking=true`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                insightsData = await response.json();
+                if (insightsData.success) {
+                    renderDashboard(insightsData.data);
+                } else {
+                    throw new Error(insightsData.error || 'Failed to load insights');
+                }
+                
+            } catch (error) {
+                console.error('Error loading insights:', error);
+                showError('Failed to load cross-tenant insights: ' + error.message);
+            }
+        }
+
+        function renderDashboard(data) {
+            hideLoading();
+            hideError();
+            showMainContent();
+
+            // Update overview cards
+            updateOverviewCards(data);
+            
+            // Update tenant state
+            updateTenantState(data);
+            
+            // Render patterns
+            renderPatterns(data.cross_tenant_patterns.patterns_detail || []);
+            
+            // Render recommendations
+            renderRecommendations(data.cross_tenant_recommendations || []);
+            
+            // Render insights
+            renderInsights(data.learning_insights || []);
+            
+            // Create opportunity chart
+            createOpportunityChart(data.opportunity_metrics || {});
+        }
+
+        function updateOverviewCards(data) {
+            const patterns = data.cross_tenant_patterns || {};
+            const opportunities = data.opportunity_metrics || {};
+            
+            document.getElementById('applicablePatternsCount').textContent = 
+                patterns.applicable_patterns || 0;
+            
+            document.getElementById('highImpactCount').textContent = 
+                opportunities.high_impact_opportunities || 0;
+            
+            document.getElementById('avgImprovement').textContent = 
+                opportunities.avg_improvement_potential ? 
+                opportunities.avg_improvement_potential.toFixed(1) + '%' : '0%';
+            
+            document.getElementById('implementationReadiness').textContent = 
+                opportunities.implementation_readiness_score ? 
+                Math.round(opportunities.implementation_readiness_score * 100) + '%' : '0%';
+        }
+
+        function updateTenantState(data) {
+            const state = data.tenant_optimization_state || {};
+            
+            document.getElementById('performanceTier').textContent = 
+                (state.performance_tier || 'unknown').toUpperCase();
+            
+            document.getElementById('optimizationMaturity').textContent = 
+                (state.optimization_maturity || 'unknown').toUpperCase();
+            
+            document.getElementById('patternDiversity').textContent = 
+                state.pattern_diversity_score ? 
+                (state.pattern_diversity_score * 100).toFixed(0) + '%' : '0%';
+        }
+
+        function renderPatterns(patterns) {
+            const container = document.getElementById('patternsGrid');
+            container.innerHTML = '';
+
+            if (patterns.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-500">
+                        <i class="fas fa-search text-4xl mb-4 opacity-50"></i>
+                        <p>No applicable patterns found for your tenant.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            patterns.forEach(pattern => {
+                const patternCard = document.createElement('div');
+                patternCard.className = 'pattern-card p-4 rounded-lg shadow-sm';
+                
+                patternCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-sm">${pattern.pattern_type.replace('_', ' ').toUpperCase()}</h4>
+                        <span class="text-xs bg-white bg-opacity-20 px-2 py-1 rounded">
+                            ${Math.round(pattern.success_rate * 100)}% Success
+                        </span>
+                    </div>
+                    <p class="text-xs mb-3 opacity-90">
+                        ${pattern.avg_improvement_percent.toFixed(1)}% avg improvement
+                    </p>
+                    <div class="text-xs opacity-75">
+                        <i class="fas fa-building mr-1"></i>
+                        ${pattern.tenant_count} organizations
+                        <br>
+                        <i class="fas fa-calendar mr-1"></i>
+                        First seen: ${new Date(pattern.first_observed).toLocaleDateString()}
+                    </div>
+                    <div class="mt-2">
+                        <div class="w-full bg-white bg-opacity-20 rounded-full h-1.5">
+                            <div class="bg-white h-1.5 rounded-full" style="width: ${pattern.confidence_score * 100}%"></div>
+                        </div>
+                        <span class="text-xs opacity-75">Confidence: ${Math.round(pattern.confidence_score * 100)}%</span>
+                    </div>
+                `;
+                
+                container.appendChild(patternCard);
+            });
+        }
+
+        function renderRecommendations(recommendations) {
+            const container = document.getElementById('recommendationsContainer');
+            container.innerHTML = '';
+
+            if (recommendations.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-lightbulb text-4xl mb-4 opacity-50"></i>
+                        <p>No cross-tenant recommendations available at this time.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            recommendations.forEach(rec => {
+                const recCard = document.createElement('div');
+                recCard.className = 'recommendation-card p-4 rounded-lg shadow-sm mb-4';
+                
+                const confidenceColor = {
+                    'high': 'bg-green-500',
+                    'medium': 'bg-yellow-500', 
+                    'low': 'bg-red-500'
+                }[rec.confidence_level] || 'bg-gray-500';
+                
+                recCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-lg">${rec.title}</h4>
+                        <span class="text-xs ${confidenceColor} px-2 py-1 rounded text-white">
+                            ${rec.confidence_level.toUpperCase()} CONFIDENCE
+                        </span>
+                    </div>
+                    <p class="text-sm mb-3 opacity-90">
+                        ${rec.description}
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <strong>Expected Impact:</strong><br>
+                            ${rec.expected_improvement?.improvement_percent?.toFixed(1) || 'N/A'}% improvement
+                        </div>
+                        <div>
+                            <strong>Similar Organizations:</strong><br>
+                            ${rec.similar_tenant_count} with ${Math.round(rec.pattern_success_rate * 100)}% success rate
+                        </div>
+                        <div>
+                            <strong>Complexity:</strong><br>
+                            ${rec.implementation_complexity} (${rec.estimated_effort})
+                        </div>
+                        <div>
+                            <strong>Category:</strong><br>
+                            ${rec.category || 'General'}
+                        </div>
+                    </div>
+                    ${rec.adaptation_guidance ? `
+                        <div class="mt-3 pt-3 border-t border-white border-opacity-20">
+                            <p class="text-xs opacity-75">
+                                <strong>Adaptation Guidance:</strong> ${rec.adaptation_guidance}
+                            </p>
+                        </div>
+                    ` : ''}
+                `;
+                
+                container.appendChild(recCard);
+            });
+        }
+
+        function renderInsights(insights) {
+            const container = document.getElementById('insightsContainer');
+            container.innerHTML = '';
+
+            if (insights.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-chart-bar text-4xl mb-4 opacity-50"></i>
+                        <p>No learning insights available at this time.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            insights.forEach(insight => {
+                const insightCard = document.createElement('div');
+                const impactClass = `${insight.impact_level}-impact`;
+                insightCard.className = `insight-card bg-white border rounded-lg p-4 ${impactClass}`;
+                
+                const impactIcon = {
+                    'high': 'fas fa-exclamation-triangle text-red-500',
+                    'medium': 'fas fa-info-circle text-yellow-500',
+                    'low': 'fas fa-lightbulb text-gray-500'
+                }[insight.impact_level] || 'fas fa-info text-gray-500';
+                
+                insightCard.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3">
+                            <i class="${impactIcon} text-lg"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 mb-1">${insight.title}</h4>
+                            <p class="text-sm text-gray-700 mb-2">${insight.description}</p>
+                            <div class="flex items-center text-xs text-gray-500">
+                                <span class="mr-4">
+                                    <i class="fas fa-chart-line mr-1"></i>
+                                    Impact: ${insight.impact_level.toUpperCase()}
+                                </span>
+                                <span class="mr-4">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Confidence: ${Math.round(insight.confidence * 100)}%
+                                </span>
+                                <span>
+                                    <i class="fas fa-tag mr-1"></i>
+                                    ${insight.insight_type}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(insightCard);
+            });
+        }
+
+        function createOpportunityChart(metrics) {
+            const ctx = document.getElementById('opportunityChart').getContext('2d');
+            
+            if (opportunityChart) {
+                opportunityChart.destroy();
+            }
+            
+            opportunityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        'High-Impact Opportunities',
+                        'High-Confidence Patterns', 
+                        'Total Applicable Patterns',
+                        'Remaining Potential'
+                    ],
+                    datasets: [{
+                        data: [
+                            metrics.high_impact_opportunities || 0,
+                            metrics.high_confidence_patterns || 0,
+                            metrics.total_patterns_applicable || 0,
+                            Math.max(0, 20 - (metrics.total_patterns_applicable || 0))
+                        ],
+                        backgroundColor: [
+                            '#EF4444', // Red for high-impact
+                            '#10B981', // Green for high-confidence  
+                            '#3B82F6', // Blue for total patterns
+                            '#E5E7EB'  // Gray for remaining
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Utility functions
+        function showLoading() {
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('errorState').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorState').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+
+        function hideError() {
+            document.getElementById('errorState').classList.add('hidden');
+        }
+
+        function showMainContent() {
+            document.getElementById('mainContent').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

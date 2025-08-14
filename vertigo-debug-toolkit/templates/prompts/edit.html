@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Prompt - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="bi bi-pencil-square me-2"></i>Edit Prompt</h1>
+            <a href="{{ url_for('prompts.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Back to Prompts
+            </a>
+        </div>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert {% if category == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Prompt Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Prompt Name *</label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ prompt.name }}" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="version" class="form-label">Version *</label>
+                            <input type="text" class="form-control" id="version" name="version" 
+                                   value="{{ prompt.version }}" required>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="prompt_type" class="form-label">Type *</label>
+                            <select class="form-select" id="prompt_type" name="prompt_type" required>
+                                <option value="">Select type...</option>
+                                <option value="meeting_analysis" {% if prompt.prompt_type == 'meeting_analysis' %}selected{% endif %}>Meeting Analysis</option>
+                                <option value="status_report" {% if prompt.prompt_type == 'status_report' %}selected{% endif %}>Status Report</option>
+                                <option value="daily_summary" {% if prompt.prompt_type == 'daily_summary' %}selected{% endif %}>Daily Summary</option>
+                                <option value="executive_summary" {% if prompt.prompt_type == 'executive_summary' %}selected{% endif %}>Executive Summary</option>
+                                <option value="technical_analysis" {% if prompt.prompt_type == 'technical_analysis' %}selected{% endif %}>Technical Analysis</option>
+                                <option value="transcript" {% if prompt.prompt_type == 'transcript' %}selected{% endif %}>Transcript Analysis</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags (JSON array)</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               value="{{ prompt.tags | tojson if prompt.tags else '[]' }}" 
+                               placeholder='["tag1", "tag2"]'>
+                        <div class="form-text">Enter tags as a JSON array</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Prompt Content *</label>
+                        <textarea class="form-control" id="content" name="content" rows="15" required 
+                                  placeholder="Enter your prompt content here...">{{ prompt.content }}</textarea>
+                        <div class="form-text">
+                            Use {transcript} and {project} as placeholders for dynamic content.
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Update Prompt
+                        </button>
+                        <a href="{{ url_for('prompts.test_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-primary">
+                            <i class="bi bi-play-circle me-1"></i>Test Prompt
+                        </a>
+                        <a href="{{ url_for('prompts.view_prompt', prompt_id=prompt.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-eye me-1"></i>View Details
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Prompt Guidelines Panel -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Prompt Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6>Available Placeholders:</h6>
+                <ul class="list-unstyled">
+                    <li><code class="text-danger">{transcript}</code> - Meeting transcript content</li>
+                    <li><code class="text-danger">{project}</code> - Project name</li>
+                    <li><code class="text-danger">{date}</code> - Current date</li>
+                    <li><code class="text-danger">{participants}</code> - List of participants</li>
+                </ul>
+                
+                <h6>Best Practices:</h6>
+                <ul class="small">
+                    <li>Be specific about the output format (JSON, markdown, etc.)</li>
+                    <li>Include clear instructions for the AI model</li>
+                    <li>Specify the role/persona for the AI</li>
+                    <li>Add examples when possible</li>
+                    <li>Keep prompts focused and concise</li>
+                </ul>
+                
+                <h6>Example Structure:</h6>
+                <pre class="small bg-light p-2 rounded">
+You are a [role]. 
+[Context and instructions]
+
+Return your response as [format]:
+
+[Expected structure]
+
+Focus on:
+- [Key point 1]
+- [Key point 2]
+
+Transcript: {transcript}
+Project: {project}
+
+Return only valid [format].</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

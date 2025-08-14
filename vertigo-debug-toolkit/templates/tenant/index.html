@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Tenant Management - Vertigo Debug Toolkit{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>🏢 Multi-Tenant Management</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
+                    <i class="bi bi-plus-circle me-2"></i>Create Tenant
+                </button>
+            </div>
+            <p class="lead">Manage tenant isolation, security, and access control for your organization.</p>
+        </div>
+    </div>
+    
+    <!-- Tenant Overview Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="total-tenants">{{ tenants|length }}</h4>
+                            <p class="mb-0">Total Tenants</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-building fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="active-tenants">{{ tenants|selectattr('tenant.status', 'equalto', 'active')|list|length }}</h4>
+                            <p class="mb-0">Active Tenants</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="total-users">{{ tenants|map(attribute='metrics.users_count')|sum }}</h4>
+                            <p class="mb-0">Total Users</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-people fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 id="storage-usage">{{ "%.1f"|format(tenants|map(attribute='metrics.storage_used_gb')|sum) }} GB</h4>
+                            <p class="mb-0">Storage Used</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-hdd fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tenants List -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Your Tenants</h5>
+                </div>
+                <div class="card-body">
+                    {% if tenants %}
+                    <div class="row">
+                        {% for tenant_data in tenants %}
+                        <div class="col-lg-6 col-xl-4 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">{{ tenant_data.tenant.name }}</h6>
+                                    <span class="badge bg-{% if tenant_data.tenant.status.value == 'active' %}success{% elif tenant_data.tenant.status.value == 'trial' %}warning{% else %}secondary{% endif %}">
+                                        {{ tenant_data.tenant.status.value|title }}
+                                    </span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted">Domain:</small>
+                                        <div class="fw-bold">{{ tenant_data.tenant.domain }}</div>
+                                    </div>
+                                    
+                                    <!-- Usage Metrics -->
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted">Users</small>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ tenant_data.metrics.users_usage_percent }}%" 
+                                                     aria-valuenow="{{ tenant_data.metrics.users_usage_percent }}" 
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <small class="text-muted">{{ tenant_data.metrics.users_count }}/{{ tenant_data.metrics.users_limit }}</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Storage</small>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-info" role="progressbar" 
+                                                     style="width: {{ tenant_data.metrics.storage_usage_percent }}%" 
+                                                     aria-valuenow="{{ tenant_data.metrics.storage_usage_percent }}" 
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <small class="text-muted">{{ "%.1f"|format(tenant_data.metrics.storage_used_gb) }}/{{ "%.1f"|format(tenant_data.metrics.storage_limit_gb) }} GB</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Features -->
+                                    <div class="mb-3">
+                                        <small class="text-muted">Features:</small>
+                                        <div class="mt-1">
+                                            {% for feature in tenant_data.tenant.config.features_enabled[:3] %}
+                                            <span class="badge bg-light text-dark me-1">{{ feature }}</span>
+                                            {% endfor %}
+                                            {% if tenant_data.tenant.config.features_enabled|length > 3 %}
+                                            <span class="badge bg-light text-dark">+{{ tenant_data.tenant.config.features_enabled|length - 3 }} more</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Created Date -->
+                                    <div class="text-muted small">
+                                        Created {{ tenant_data.metrics.days_active }} days ago
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <div class="btn-group w-100" role="group">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="viewTenant('{{ tenant_data.tenant.id }}')">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" onclick="manageTenant('{{ tenant_data.tenant.id }}')">
+                                            <i class="bi bi-gear"></i> Manage
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="switchTenant('{{ tenant_data.tenant.id }}')">
+                                            <i class="bi bi-arrow-right-circle"></i> Switch
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-building fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Tenants Found</h5>
+                        <p class="text-muted">Create your first tenant to get started with multi-tenant isolation.</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTenantModal">
+                            <i class="bi bi-plus-circle me-2"></i>Create First Tenant
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Tenant Modal -->
+<div class="modal fade" id="createTenantModal" tabindex="-1" aria-labelledby="createTenantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTenantModalLabel">Create New Tenant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createTenantForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tenantName" class="form-label">Tenant Name</label>
+                                <input type="text" class="form-control" id="tenantName" name="name" required>
+                                <div class="form-text">Organization or company name</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="tenantDomain" class="form-label">Domain</label>
+                                <input type="text" class="form-control" id="tenantDomain" name="domain" required>
+                                <div class="form-text">Unique domain identifier (e.g., acme-corp)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="maxUsers" class="form-label">Max Users</label>
+                                <input type="number" class="form-control" id="maxUsers" name="max_users" value="25" min="1" max="1000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="maxProjects" class="form-label">Max Projects</label>
+                                <input type="number" class="form-control" id="maxProjects" name="max_projects" value="10" min="1" max="100">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="maxStorage" class="form-label">Storage Limit (GB)</label>
+                                <input type="number" class="form-control" id="maxStorage" name="max_storage_gb" value="5" min="0.1" max="1000" step="0.1">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="retentionDays" class="form-label">Data Retention (Days)</label>
+                                <input type="number" class="form-control" id="retentionDays" name="retention_days" value="90" min="1" max="365">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Features</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="analytics" id="featureAnalytics" checked>
+                                    <label class="form-check-label" for="featureAnalytics">Advanced Analytics</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="alerts" id="featureAlerts" checked>
+                                    <label class="form-check-label" for="featureAlerts">Real-time Alerts</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="advanced_evaluation" id="featureEvaluation" checked>
+                                    <label class="form-check-label" for="featureEvaluation">Advanced Evaluation</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="semantic_search" id="featureSearch" checked>
+                                    <label class="form-check-label" for="featureSearch">Semantic Search</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createTenant()">
+                    <i class="bi bi-plus-circle me-2"></i>Create Tenant
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tenant Details Modal -->
+<div class="modal fade" id="tenantDetailsModal" tabindex="-1" aria-labelledby="tenantDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tenantDetailsModalLabel">Tenant Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="tenantDetailsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh tenant data every 5 minutes
+    setInterval(refreshTenantData, 300000);
+});
+
+async function createTenant() {
+    try {
+        const form = document.getElementById('createTenantForm');
+        const formData = new FormData(form);
+        
+        // Collect features
+        const features = [];
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            features.push(cb.value);
+        });
+        
+        const data = {
+            name: formData.get('name'),
+            domain: formData.get('domain'),
+            config: {
+                max_users: parseInt(formData.get('max_users')),
+                max_projects: parseInt(formData.get('max_projects')),
+                max_storage_gb: parseFloat(formData.get('max_storage_gb')),
+                retention_days: parseInt(formData.get('retention_days')),
+                features_enabled: features
+            }
+        };
+        
+        const response = await fetch('/tenant/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message with API key
+            alert(`Tenant created successfully!\n\nAPI Key: ${result.api_key}\n\nPlease save this API key securely as it won't be shown again.`);
+            
+            // Close modal and refresh page
+            bootstrap.Modal.getInstance(document.getElementById('createTenantModal')).hide();
+            window.location.reload();
+        } else {
+            alert('Error creating tenant: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error creating tenant:', error);
+        alert('Error creating tenant: ' + error.message);
+    }
+}
+
+async function viewTenant(tenantId) {
+    try {
+        const response = await fetch(`/tenant/${tenantId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const tenant = result.tenant;
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Basic Information</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Name:</strong></td><td>${tenant.name}</td></tr>
+                            <tr><td><strong>Domain:</strong></td><td>${tenant.domain}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="badge bg-success">${tenant.status}</span></td></tr>
+                            <tr><td><strong>Created:</strong></td><td>${new Date(tenant.created_at).toLocaleString()}</td></tr>
+                            <tr><td><strong>API Key:</strong></td><td><code>${tenant.api_key}</code></td></tr>
+                        </table>
+                        
+                        <h6 class="mt-4">Configuration</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Max Users:</strong></td><td>${tenant.config.max_users}</td></tr>
+                            <tr><td><strong>Max Projects:</strong></td><td>${tenant.config.max_projects}</td></tr>
+                            <tr><td><strong>Storage Limit:</strong></td><td>${tenant.config.max_storage_gb} GB</td></tr>
+                            <tr><td><strong>Retention:</strong></td><td>${tenant.config.retention_days} days</td></tr>
+                        </table>
+                        
+                        <h6 class="mt-4">Features Enabled</h6>
+                        <div>
+                            ${tenant.config.features_enabled.map(f => `<span class="badge bg-primary me-1">${f}</span>`).join('')}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Usage Metrics</h6>
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Users:</span>
+                                        <span>${tenant.metrics.users_count}/${tenant.metrics.users_limit}</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar" style="width: ${tenant.metrics.users_usage_percent}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Storage:</span>
+                                        <span>${tenant.metrics.storage_used_gb.toFixed(1)}/${tenant.metrics.storage_limit_gb} GB</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-info" style="width: ${tenant.metrics.storage_usage_percent}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <small class="text-muted">Active for ${tenant.metrics.days_active} days</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('tenantDetailsContent').innerHTML = html;
+            document.getElementById('tenantDetailsModalLabel').textContent = `${tenant.name} - Details`;
+            
+            new bootstrap.Modal(document.getElementById('tenantDetailsModal')).show();
+        } else {
+            alert('Error loading tenant details: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error viewing tenant:', error);
+        alert('Error viewing tenant: ' + error.message);
+    }
+}
+
+function manageTenant(tenantId) {
+    // Redirect to tenant management page
+    window.location.href = `/tenant/${tenantId}/manage`;
+}
+
+async function switchTenant(tenantId) {
+    try {
+        const response = await fetch('/tenant/switch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tenant_id: tenantId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Switched to tenant: ${result.tenant.name}`);
+            window.location.reload();
+        } else {
+            alert('Error switching tenant: ' + result.error);
+        }
+        
+    } catch (error) {
+        console.error('Error switching tenant:', error);
+        alert('Error switching tenant: ' + error.message);
+    }
+}
+
+async function refreshTenantData() {
+    try {
+        // Refresh the page to get updated tenant data
+        window.location.reload();
+    } catch (error) {
+        console.error('Error refreshing tenant data:', error);
+    }
+}
+</script>
+{% endblock %}
