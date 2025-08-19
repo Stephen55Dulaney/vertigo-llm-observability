@@ -4,113 +4,410 @@
 
 {% block head %}
 {{ super() }}
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
 <style>
+/* =============================================================================
+   ML Dashboard Professional Design System
+   ============================================================================= */
+
+/* CSS Variables for Design System */
+:root {
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-primary-light: #dbeafe;
+    --color-success: #059669;
+    --color-success-light: #d1fae5;
+    --color-warning: #d97706;
+    --color-warning-light: #fef3c7;
+    --color-danger: #dc2626;
+    --color-danger-light: #fee2e2;
+    
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+    
+    --spacing-1: 0.25rem;  /* 4px */
+    --spacing-2: 0.5rem;   /* 8px */
+    --spacing-3: 0.75rem;  /* 12px */
+    --spacing-4: 1rem;     /* 16px */
+    --spacing-5: 1.25rem;  /* 20px */
+    --spacing-6: 1.5rem;   /* 24px */
+    --spacing-8: 2rem;     /* 32px */
+    --spacing-12: 3rem;    /* 48px */
+    
+    --border-radius-sm: 0.25rem;   /* 4px */
+    --border-radius: 0.375rem;     /* 6px */
+    --border-radius-md: 0.5rem;    /* 8px */
+    --border-radius-lg: 0.75rem;   /* 12px */
+    --border-radius-xl: 1rem;      /* 16px */
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    --line-height-tight: 1.25;
+    --line-height-snug: 1.375;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+}
+
+/* =============================================================================
+   BASE COMPONENTS
+   ============================================================================= */
+
 .ml-card {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-6);
+    margin-bottom: var(--spacing-6);
+    border: 1px solid var(--color-gray-200);
+    transition: all 0.2s ease-in-out;
 }
+
+.ml-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
+}
+
+/* =============================================================================
+   TYPOGRAPHY SYSTEM
+   ============================================================================= */
 
 .metric-value {
     font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: var(--font-weight-bold);
+    color: var(--color-gray-900);
+    line-height: var(--line-height-tight);
 }
 
 .metric-label {
     font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--color-gray-600);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-weight: var(--font-weight-medium);
+    margin-top: var(--spacing-1);
 }
 
-.insight-item {
-    background: #f8fafc;
-    border-left: 4px solid #3b82f6;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    border-radius: 0 4px 4px 0;
-}
+/* =============================================================================
+   BUTTON SYSTEM
+   ============================================================================= */
 
-.pattern-item {
-    background: #fff7ed;
-    border-left: 4px solid #f59e0b;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    border-radius: 0 4px 4px 0;
-}
-
-.recommendation-item {
-    background: #f0f9ff;
-    border-left: 4px solid #0ea5e9;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    border-radius: 0 4px 4px 0;
-}
-
-.priority-critical {
-    border-left-color: #dc2626 !important;
-    background-color: #fef2f2 !important;
-}
-
-.priority-high {
-    border-left-color: #ea580c !important;
-    background-color: #fff7ed !important;
-}
-
-.priority-medium {
-    border-left-color: #d97706 !important;
-    background-color: #fffbeb !important;
-}
-
-.priority-low {
-    border-left-color: #65a30d !important;
-    background-color: #f7fee7 !important;
-}
-
-.loading {
-    display: flex;
-    justify-content: center;
+.btn {
+    display: inline-flex;
     align-items: center;
-    height: 200px;
-    color: #6b7280;
+    justify-content: center;
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--border-radius);
+    font-weight: var(--font-weight-medium);
+    font-size: 0.875rem;
+    line-height: var(--line-height-tight);
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    min-height: 2.5rem;
 }
 
-.error {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #991b1b;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
+.btn:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: white;
+    color: var(--color-gray-700);
+    border-color: var(--color-gray-300);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-gray-50);
+    border-color: var(--color-gray-400);
+    color: var(--color-gray-900);
+    box-shadow: var(--shadow);
+}
+
+.btn-success {
+    background-color: var(--color-success);
+    color: white;
+    border-color: var(--color-success);
+}
+
+.btn-success:hover {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+.btn-danger {
+    background-color: var(--color-danger);
+    color: white;
+    border-color: var(--color-danger);
+}
+
+.btn-danger:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* =============================================================================
+   FORM SYSTEM
+   ============================================================================= */
+
+.form-input {
+    display: block;
+    width: 100%;
+    padding: var(--spacing-3) var(--spacing-4);
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--border-radius);
+    background-color: white;
+    font-size: 0.875rem;
+    line-height: var(--line-height-normal);
+    color: var(--color-gray-900);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input:disabled {
+    background-color: var(--color-gray-50);
+    color: var(--color-gray-500);
+    cursor: not-allowed;
+}
+
+.form-input::placeholder {
+    color: var(--color-gray-400);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 5rem;
+}
+
+.form-select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right var(--spacing-2) center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: var(--spacing-8);
+}
+
+.form-label {
+    display: block;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-gray-700);
+    margin-bottom: var(--spacing-2);
+    font-size: 0.875rem;
+}
+
+.form-help {
+    font-size: 0.75rem;
+    color: var(--color-gray-500);
+    margin-top: var(--spacing-1);
+}
+
+/* Custom Checkbox Styling */
+.form-checkbox {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--color-gray-300);
+    border-radius: var(--border-radius-sm);
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-checkbox:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.form-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.form-checkbox:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--color-gray-700);
+}
+
+/* =============================================================================
+   MODAL SYSTEM - CRITICAL FIX
+   ============================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay.show {
+    opacity: 1;
+}
+
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-4);
+    pointer-events: none;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow-2xl);
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: auto;
+    transform: scale(0.95) translateY(1rem);
+    transition: all 0.3s ease-in-out;
+}
+
+.modal-container.show .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.modal-header {
+    padding: var(--spacing-6);
+    border-bottom: 1px solid var(--color-gray-200);
+    background-color: var(--color-gray-50);
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-gray-900);
+    margin: 0;
+}
+
+.modal-body {
+    padding: var(--spacing-6);
+    overflow-y: auto;
+    max-height: calc(90vh - 8rem);
+}
+
+.modal-footer {
+    padding: var(--spacing-4) var(--spacing-6);
+    background-color: var(--color-gray-50);
+    border-top: 1px solid var(--color-gray-200);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-3);
+}
+
+/* =============================================================================
+   TAB SYSTEM
+   ============================================================================= */
 
 .tab-container {
-    margin-bottom: 2rem;
+    margin-bottom: var(--spacing-8);
 }
 
 .tab-nav {
-    border-bottom: 1px solid #e5e7eb;
-    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--color-gray-200);
+    margin-bottom: var(--spacing-6);
+    display: flex;
+    gap: var(--spacing-2);
 }
 
-.tab-nav button {
-    padding: 0.75rem 1rem;
+.tab-button {
+    padding: var(--spacing-3) var(--spacing-4);
     border: none;
     background: none;
-    color: #6b7280;
-    border-bottom: 2px solid transparent;
+    color: var(--color-gray-600);
+    border-bottom: 3px solid transparent;
     cursor: pointer;
-    margin-right: 1rem;
+    font-weight: var(--font-weight-medium);
+    font-size: 0.875rem;
+    transition: all 0.2s ease-in-out;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
-.tab-nav button.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
+.tab-button:hover {
+    color: var(--color-gray-900);
+    background-color: var(--color-gray-50);
+}
+
+.tab-button.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background-color: white;
+}
+
+.tab-button:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .tab-content {
@@ -121,73 +418,765 @@
     display: block;
 }
 
-.chart-container {
-    position: relative;
-    height: 300px;
-    margin-bottom: 1rem;
-}
+/* =============================================================================
+   STATUS BADGES
+   ============================================================================= */
 
-.test-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: white;
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--spacing-1) var(--spacing-3);
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .test-status-running {
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
 }
 
 .test-status-completed {
-    background: #dcfce7;
-    color: #166534;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    background: var(--color-success-light);
+    color: var(--color-success);
 }
 
 .test-status-draft {
-    background: #f3f4f6;
-    color: #374151;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
 }
+
+.test-status-stopped {
+    background: var(--color-danger-light);
+    color: var(--color-danger);
+}
+
+/* =============================================================================
+   INSIGHT CARDS
+   ============================================================================= */
+
+.insight-item {
+    background: var(--color-primary-light);
+    border-left: 4px solid var(--color-primary);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-3);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    transition: transform 0.2s ease-in-out;
+}
+
+.insight-item:hover {
+    transform: translateX(2px);
+}
+
+.pattern-item {
+    background: var(--color-warning-light);
+    border-left: 4px solid var(--color-warning);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-3);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+.recommendation-item {
+    background: #f0f9ff;
+    border-left: 4px solid #0ea5e9;
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-3);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+/* Priority Colors */
+.priority-critical {
+    border-left-color: var(--color-danger) !important;
+    background-color: var(--color-danger-light) !important;
+}
+
+.priority-high {
+    border-left-color: #ea580c !important;
+    background-color: #fff7ed !important;
+}
+
+.priority-medium {
+    border-left-color: var(--color-warning) !important;
+    background-color: var(--color-warning-light) !important;
+}
+
+.priority-low {
+    border-left-color: var(--color-success) !important;
+    background-color: var(--color-success-light) !important;
+}
+
+/* =============================================================================
+   LOADING STATES
+   ============================================================================= */
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: var(--color-gray-600);
+}
+
+.loading-spinner {
+    border: 3px solid var(--color-gray-200);
+    border-top: 3px solid var(--color-primary);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   ERROR STATES
+   ============================================================================= */
+
+.error {
+    background: var(--color-danger-light);
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: var(--spacing-4);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--spacing-4);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-3);
+}
+
+/* =============================================================================
+   CHART CONTAINERS
+   ============================================================================= */
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin-bottom: var(--spacing-4);
+    background: var(--color-gray-50);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+}
+
+/* =============================================================================
+   NOTIFICATION SYSTEM
+   ============================================================================= */
+
+.notification {
+    position: fixed;
+    top: var(--spacing-4);
+    right: var(--spacing-4);
+    background: white;
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    z-index: 10000;
+    padding: var(--spacing-4);
+    max-width: 400px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-success {
+    border-left: 4px solid var(--color-success);
+    background: var(--color-success-light);
+}
+
+.notification-error {
+    border-left: 4px solid var(--color-danger);
+    background: var(--color-danger-light);
+}
+
+/* =============================================================================
+   PROGRESS INDICATORS
+   ============================================================================= */
 
 .variant-bar {
     height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
+    background: var(--color-gray-200);
+    border-radius: var(--border-radius);
     overflow: hidden;
 }
 
 .variant-progress {
     height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
     transition: width 0.3s ease;
+    border-radius: var(--border-radius);
 }
 
 .winner-badge {
-    background: #fef3c7;
+    background: var(--color-warning-light);
     color: #92400e;
-    padding: 0.125rem 0.5rem;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .modal-content {
+        margin: var(--spacing-4);
+        max-height: calc(100vh - var(--spacing-8));
+    }
+    
+    .modal-body {
+        max-height: calc(100vh - 12rem);
+    }
+    
+    .ml-card {
+        padding: var(--spacing-4);
+        margin-bottom: var(--spacing-4);
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .modal-footer {
+        flex-direction: column-reverse;
+    }
+    
+    .tab-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: var(--spacing-2);
+    }
+    
+    .tab-button {
+        flex-shrink: 0;
+        display: inline-block;
+    }
+}
+
+@media (max-width: 480px) {
+    .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .ml-card {
+        padding: var(--spacing-3);
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+    
+    .modal-content {
+        margin: var(--spacing-2);
+        max-height: calc(100vh - var(--spacing-4));
+    }
+}
+
+/* =============================================================================
+   ACCESSIBILITY IMPROVEMENTS
+   ============================================================================= */
+
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--color-primary);
+    color: white;
+    padding: var(--spacing-2);
+    text-decoration: none;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    z-index: 10001;
+    font-weight: var(--font-weight-medium);
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Enhanced focus indicators */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Screen reader only content */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* =============================================================================
+   TEST CARD SPECIFIC STYLING
+   ============================================================================= */
+
+.test-card {
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-4);
+    background: white;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease-in-out;
+}
+
+.test-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-gray-300);
+}
+
+/* =============================================================================
+   UTILITY CLASSES
+   ============================================================================= */
+
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.font-medium {
+    font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+    font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+    font-weight: var(--font-weight-bold);
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.space-y-2 > * + * {
+    margin-top: var(--spacing-2);
+}
+
+.space-y-4 > * + * {
+    margin-top: var(--spacing-4);
+}
+
+.space-x-2 > * + * {
+    margin-left: var(--spacing-2);
+}
+
+.space-x-4 > * + * {
+    margin-left: var(--spacing-4);
+}
+
+.grid {
+    display: grid;
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.gap-4 {
+    gap: var(--spacing-4);
+}
+
+.gap-6 {
+    gap: var(--spacing-6);
+}
+
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.justify-end {
+    justify-content: flex-end;
+}
+
+/* =============================================================================
+   DASHBOARD LAYOUT FIXES
+   ============================================================================= */
+
+.dashboard-main-content {
+    display: block !important;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.dashboard-main-content.loading {
+    opacity: 0.5;
+}
+
+/* Fix for any oversized icons */
+svg {
+    max-width: 2rem;
+    max-height: 2rem;
+}
+
+.notification svg {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex-shrink: 0;
+}
+
+/* Ensure content containers don't get oversized */
+.ml-card, .test-card, .insight-item, .pattern-item, .recommendation-item {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* =============================================================================
+   ANIMATIONS
+   ============================================================================= */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Professional Modal Animations and Backdrop */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay.show {
+    opacity: 1;
+}
+
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: auto;
+    transform: scale(0.95) translateY(1rem);
+    transition: all 0.3s ease-in-out;
+}
+
+.modal-container.show .modal-content {
+    transform: scale(1) translateY(0);
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 8rem);
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    background-color: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Professional Form Styling */
+.form-input {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    background-color: white;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #111827;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input:disabled {
+    background-color: #f9fafb;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+.form-input::placeholder {
+    color: #9ca3af;
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 5rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.form-help {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.form-checkbox {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.25rem;
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-checkbox:checked {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.form-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    width: 6px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.form-checkbox:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+/* Enhanced Button System */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    min-height: 2.5rem;
+}
+
+.btn:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.btn-primary {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: white;
+    color: #374151;
+    border-color: #d1d5db;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+    color: #111827;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.btn-success {
+    background-color: #059669;
+    color: white;
+    border-color: #059669;
+}
+
+.btn-success:hover {
+    background-color: #047857;
+    border-color: #047857;
+}
+
+.btn-danger {
+    background-color: #dc2626;
+    color: white;
+    border-color: #dc2626;
+}
+
+.btn-danger:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* Status Badge Improvements */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.test-status-running {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.test-status-completed {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.test-status-draft {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.test-status-stopped {
+    background: #fee2e2;
+    color: #dc2626;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
+<a href="#main-content" class="skip-link">Skip to main content</a>
+    <div class="container mx-auto px-4 py-6" id="main-content">
     <!-- Header -->
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900">ML Optimization Dashboard</h1>
@@ -203,12 +1192,29 @@
     </div>
 
     <!-- Error display -->
-    <div id="error" class="error" style="display: none;">
-        <strong>Error:</strong> <span id="error-message"></span>
+    <div id="error" class="error" style="display: none;" role="alert" aria-live="polite">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <strong>Error:</strong> <span id="error-message"></span>
+            </div>
+        </div>
     </div>
 
-    <!-- Dashboard content -->
-    <div id="dashboard-content" style="display: none;">
+    <!-- Success notification -->
+    <div id="success-notification" class="notification notification-success hidden" role="alert" aria-live="polite">
+        <div class="flex items-center">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right: 8px;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="success-message"></span>
+        </div>
+    </div>
+
+        <!-- Dashboard content -->
+    <div id="dashboard-content" class="dashboard-main-content">
         <!-- Overview Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             <div class="ml-card">
@@ -231,23 +1237,23 @@
 
         <!-- Tab Navigation -->
         <div class="tab-container">
-            <div class="tab-nav">
-                <button class="tab-button active" data-tab="overview">Overview</button>
-                <button class="tab-button" data-tab="patterns">Performance Patterns</button>
-                <button class="tab-button" data-tab="recommendations">Recommendations</button>
-                <button class="tab-button" data-tab="ab-testing">A/B Testing</button>
-                <button class="tab-button" data-tab="quality">Quality Analysis</button>
-                <button class="tab-button" data-tab="models">Model Comparison</button>
+            <div class="tab-nav" role="tablist" aria-label="Dashboard sections">
+                <button class="tab-button active" data-tab="overview" role="tab" aria-selected="true" aria-controls="overview" id="tab-overview" tabindex="0">Overview</button>
+                <button class="tab-button" data-tab="patterns" role="tab" aria-selected="false" aria-controls="patterns" id="tab-patterns" tabindex="-1">Performance Patterns</button>
+                <button class="tab-button" data-tab="recommendations" role="tab" aria-selected="false" aria-controls="recommendations" id="tab-recommendations" tabindex="-1">Recommendations</button>
+                <button class="tab-button" data-tab="ab-testing" role="tab" aria-selected="false" aria-controls="ab-testing" id="tab-ab-testing" tabindex="-1">A/B Testing</button>
+                <button class="tab-button" data-tab="quality" role="tab" aria-selected="false" aria-controls="quality" id="tab-quality" tabindex="-1">Quality Analysis</button>
+                <button class="tab-button" data-tab="models" role="tab" aria-selected="false" aria-controls="models" id="tab-models" tabindex="-1">Model Comparison</button>
             </div>
 
             <!-- Overview Tab -->
-            <div id="overview" class="tab-content active">
+            <div id="overview" class="tab-content active" role="tabpanel" aria-labelledby="tab-overview" tabindex="0">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Performance Distribution -->
                     <div class="ml-card">
                         <h3 class="text-lg font-semibold mb-4">Performance Distribution</h3>
                         <div class="chart-container">
-                            <canvas id="performance-chart"></canvas>
+                            <canvas id="performance-chart" role="img" aria-label="Performance distribution chart showing excellent, good, fair, and poor prompt performance percentages"></canvas>
                         </div>
                     </div>
 
@@ -270,7 +1276,7 @@
             </div>
 
             <!-- Patterns Tab -->
-            <div id="patterns" class="tab-content">
+            <div id="patterns" class="tab-content" role="tabpanel" aria-labelledby="tab-patterns" tabindex="0" aria-hidden="true">
                 <div class="ml-card">
                     <h3 class="text-lg font-semibold mb-4">Detected Performance Patterns</h3>
                     <div id="patterns-list">
@@ -280,7 +1286,7 @@
             </div>
 
             <!-- Recommendations Tab -->
-            <div id="recommendations" class="tab-content">
+            <div id="recommendations" class="tab-content" role="tabpanel" aria-labelledby="tab-recommendations" tabindex="0" aria-hidden="true">
                 <div class="ml-card">
                     <h3 class="text-lg font-semibold mb-4">Optimization Recommendations</h3>
                     <div id="recommendations-list">
@@ -290,16 +1296,16 @@
             </div>
 
             <!-- A/B Testing Tab -->
-            <div id="ab-testing" class="tab-content">
+            <div id="ab-testing" class="tab-content" role="tabpanel" aria-labelledby="tab-ab-testing" tabindex="0" aria-hidden="true">
                 <!-- A/B Testing Header with Actions -->
                 <div class="ml-card">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold">A/B Testing Dashboard</h3>
                         <div class="space-x-2">
-                            <button onclick="createNewTest()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+                            <button onclick="createNewTest()" class="btn btn-primary text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
                                 Create New Test
                             </button>
-                            <button onclick="refreshABTests()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
+                            <button onclick="refreshABTests()" class="btn btn-secondary text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
                                 Refresh
                             </button>
                         </div>
@@ -348,12 +1354,12 @@
             </div>
 
             <!-- Quality Analysis Tab -->
-            <div id="quality" class="tab-content">
+            <div id="quality" class="tab-content" role="tabpanel" aria-labelledby="tab-quality" tabindex="0" aria-hidden="true">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="ml-card">
                         <h3 class="text-lg font-semibold mb-4">Quality Score Distribution</h3>
                         <div class="chart-container">
-                            <canvas id="quality-chart"></canvas>
+                            <canvas id="quality-chart" role="img" aria-label="Quality score distribution chart"></canvas>
                         </div>
                     </div>
                     
@@ -367,11 +1373,11 @@
             </div>
 
             <!-- Model Comparison Tab -->
-            <div id="models" class="tab-content">
+            <div id="models" class="tab-content" role="tabpanel" aria-labelledby="tab-models" tabindex="0" aria-hidden="true">
                 <div class="ml-card">
                     <h3 class="text-lg font-semibold mb-4">Model Performance Comparison</h3>
                     <div class="chart-container">
-                        <canvas id="model-comparison-chart"></canvas>
+                        <canvas id="model-comparison-chart" role="img" aria-label="Model performance comparison chart"></canvas>
                     </div>
                 </div>
             </div>
@@ -380,126 +1386,129 @@
 </div>
 
 <!-- Action Modals -->
-<div id="recommendation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Recommendation Details</h3>
-                <div id="modal-content">
-                    <!-- Dynamic content -->
-                </div>
+<div id="recommendation-modal" class="modal-overlay hidden">
+    <div class="modal-container">
+        <div class="modal-content" style="max-width: 32rem;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Recommendation Details</h3>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm" onclick="closeModal()">
+            <div class="modal-body" id="modal-content">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()" aria-label="Close recommendation details">
                     Close
                 </button>
             </div>
         </div>
     </div>
-</div>
 
 <!-- A/B Test Creation Modal -->
-<div id="create-test-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Create A/B Test</h3>
+<div id="create-test-modal" class="modal-overlay hidden">
+    <div class="modal-container">
+        <div class="modal-content" style="max-width: 48rem;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="create-test-title">Create A/B Test</h3>
+            </div>
+            <div class="modal-body">
                 <form id="create-test-form" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Test Name</label>
-                        <input type="text" name="name" required class="w-full border border-gray-300 rounded-md px-3 py-2" placeholder="e.g., Optimize Email Summary Prompt">
+                        <label for="test-name" class="form-label">Test Name</label>
+                        <input type="text" id="test-name" name="name" required class="form-input" placeholder="e.g., Optimize Email Summary Prompt" aria-describedby="test-name-help">
+                        <div id="test-name-help" class="form-help">Provide a descriptive name for your A/B test</div>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                        <textarea name="description" required class="w-full border border-gray-300 rounded-md px-3 py-2" rows="2" placeholder="Brief description of what you're testing"></textarea>
+                        <label for="test-description" class="form-label">Description</label>
+                        <textarea id="test-description" name="description" required class="form-input form-textarea" rows="2" placeholder="Brief description of what you're testing" aria-describedby="test-description-help"></textarea>
+                        <div id="test-description-help" class="form-help">Explain what aspect of the prompt you're testing</div>
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Hypothesis</label>
-                        <textarea name="hypothesis" required class="w-full border border-gray-300 rounded-md px-3 py-2" rows="2" placeholder="What you expect to happen and why"></textarea>
+                        <label for="test-hypothesis" class="form-label">Hypothesis</label>
+                        <textarea id="test-hypothesis" name="hypothesis" required class="form-input form-textarea" rows="2" placeholder="What you expect to happen and why" aria-describedby="test-hypothesis-help"></textarea>
+                        <div id="test-hypothesis-help" class="form-help">State your expected outcome and reasoning</div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Success Metrics</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" name="success_metrics" value="latency" class="mr-2">
+                    <fieldset>
+                        <legend class="form-label">Success Metrics</legend>
+                        <div class="space-y-2" role="group" aria-labelledby="success-metrics-help">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="metric-latency" name="success_metrics" value="latency" class="form-checkbox">
                                 <span class="text-sm">Latency (Response Time)</span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="success_metrics" value="cost" class="mr-2">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="metric-cost" name="success_metrics" value="cost" class="form-checkbox">
                                 <span class="text-sm">Cost (USD per Request)</span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="success_metrics" value="success_rate" class="mr-2">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="metric-success-rate" name="success_metrics" value="success_rate" class="form-checkbox">
                                 <span class="text-sm">Success Rate</span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" name="success_metrics" value="quality" class="mr-2">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="metric-quality" name="success_metrics" value="quality" class="form-checkbox">
                                 <span class="text-sm">Output Quality</span>
                             </label>
                         </div>
-                    </div>
+                        <div id="success-metrics-help" class="form-help">Select at least one metric to track test success</div>
+                    </fieldset>
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Min Sample Size</label>
-                            <input type="number" name="min_sample_size" value="100" min="50" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <label class="form-label">Min Sample Size</label>
+                            <input type="number" name="min_sample_size" value="100" min="50" class="form-input">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Max Duration (hours)</label>
-                            <input type="number" name="max_duration_hours" value="168" min="24" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <label class="form-label">Max Duration (hours)</label>
+                            <input type="number" name="max_duration_hours" value="168" min="24" class="form-input">
                         </div>
                     </div>
                     
                     <div class="flex items-center space-x-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" name="auto_conclude" checked class="mr-2">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="auto_conclude" checked class="form-checkbox">
                             <span class="text-sm">Auto-conclude when significant</span>
                         </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" name="auto_implement" class="mr-2">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="auto_implement" class="form-checkbox">
                             <span class="text-sm">Auto-implement winner</span>
                         </label>
                     </div>
                 </form>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" onclick="submitCreateTest()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">
+            <div class="modal-footer">
+                <button type="button" onclick="submitCreateTest()" class="btn btn-primary">
                     Create Test
                 </button>
-                <button type="button" onclick="closeCreateTestModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+                <button type="button" onclick="closeCreateTestModal()" class="btn btn-secondary">
                     Cancel
                 </button>
             </div>
         </div>
     </div>
-</div>
 
 <!-- Test Details Modal -->
-<div id="test-details-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center">
-        <div class="bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
-            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="test-details-title">Test Details</h3>
+<div id="test-details-modal" class="modal-overlay hidden">
+    <div class="modal-container">
+        <div class="modal-content" style="max-width: 64rem;">
+            <div class="modal-header">
+                <div class="flex justify-between items-start">
+                    <h3 class="modal-title" id="test-details-title">Test Details</h3>
                     <div id="test-details-actions" class="space-x-2">
                         <!-- Action buttons will be added dynamically -->
                     </div>
                 </div>
-                <div id="test-details-content">
-                    <!-- Dynamic content -->
-                </div>
             </div>
-            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button" onclick="closeTestDetailsModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:w-auto sm:text-sm">
+            <div class="modal-body" id="test-details-content">
+                <!-- Dynamic content -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeTestDetailsModal()" class="btn btn-secondary">
                     Close
                 </button>
             </div>
         </div>
     </div>
-</div>
 
 <script>
 // Global variables
@@ -508,28 +1517,100 @@ let charts = {};
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('ML Dashboard initializing...');
+    
+    // Ensure dashboard content is visible
+    const dashboardContent = document.getElementById('dashboard-content');
+    if (dashboardContent) {
+        dashboardContent.style.display = 'block';
+        dashboardContent.classList.add('loading');
+    }
+    
     loadDashboardData();
     initializeTabs();
+    
+    // Fallback: show content after 3 seconds even if API fails
+    setTimeout(() => {
+        if (dashboardContent) {
+            dashboardContent.style.display = 'block';
+            dashboardContent.classList.remove('loading');
+        }
+        hideLoading();
+    }, 3000);
 });
 
-// Tab functionality
+// Tab functionality with accessibility
 function initializeTabs() {
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    tabButtons.forEach(button => {
+    tabButtons.forEach((button, index) => {
+        // Click handling
         button.addEventListener('click', () => {
-            const tabId = button.getAttribute('data-tab');
+            activateTab(button, tabButtons, tabContents);
+        });
+        
+        // Keyboard navigation
+        button.addEventListener('keydown', (e) => {
+            let targetIndex = index;
             
-            // Update active button
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+            switch(e.key) {
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    e.preventDefault();
+                    targetIndex = index > 0 ? index - 1 : tabButtons.length - 1;
+                    break;
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    targetIndex = index < tabButtons.length - 1 ? index + 1 : 0;
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    targetIndex = 0;
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    targetIndex = tabButtons.length - 1;
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    activateTab(button, tabButtons, tabContents);
+                    return;
+                default:
+                    return;
+            }
             
-            // Update active content
-            tabContents.forEach(content => content.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
+            // Focus and optionally activate the target tab
+            tabButtons[targetIndex].focus();
         });
     });
+}
+
+function activateTab(activeButton, allButtons, allContents) {
+    const tabId = activeButton.getAttribute('data-tab');
+    
+    // Update ARIA states and tabindex
+    allButtons.forEach(btn => {
+        const isActive = btn === activeButton;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive);
+        btn.setAttribute('tabindex', isActive ? '0' : '-1');
+    });
+    
+    // Update content visibility and ARIA states
+    allContents.forEach(content => {
+        const isActive = content.id === tabId;
+        content.classList.toggle('active', isActive);
+        content.setAttribute('aria-hidden', !isActive);
+    });
+    
+    // Focus the active tab panel for screen readers
+    const activePanel = document.getElementById(tabId);
+    if (activePanel) {
+        activePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 
 // Load dashboard data
@@ -581,8 +1662,12 @@ function updateDashboard() {
     updatePatterns();
     updateRecommendations();
 
-    // Show dashboard
-    document.getElementById('dashboard-content').style.display = 'block';
+    // Show dashboard and remove loading state
+    const dashboardContent = document.getElementById('dashboard-content');
+    if (dashboardContent) {
+        dashboardContent.style.display = 'block';
+        dashboardContent.classList.remove('loading');
+    }
 }
 
 // Update performance distribution chart
@@ -692,7 +1777,7 @@ function updatePatterns() {
                 <div class="text-sm font-medium">${(pattern.confidence * 100).toFixed(0)}% confidence</div>
             </div>
             <div class="text-sm text-gray-700">${pattern.description}</div>
-            <div class="text-xs text-gray-500 mt-1">Frequency: ${pattern.frequency} occurrences</div>
+            <div class="form-help">Frequency: ${pattern.frequency} occurrences</div>
         </div>
     `).join('');
 }
@@ -711,7 +1796,7 @@ function updateRecommendations() {
         <div class="recommendation-item priority-${rec.impact}">
             <div class="flex justify-between items-start mb-2">
                 <div class="font-medium">${rec.title}</div>
-                <div class="text-sm font-medium capitalize bg-gray-100 px-2 py-1 rounded">${rec.impact}</div>
+                <div class="text-sm font-medium capitalize btn btn-secondary px-2 py-1 rounded">${rec.impact}</div>
             </div>
             <div class="text-sm text-gray-700">${rec.description}</div>
             <button 
@@ -734,7 +1819,7 @@ function viewRecommendation(type) {
         </div>
     `;
     
-    document.getElementById('recommendation-modal').classList.remove('hidden');
+    showModal('recommendation-modal');
     
     // Load detailed recommendation data
     loadRecommendationDetails(type);
@@ -795,12 +1880,30 @@ async function loadRecommendationDetails(type) {
 
 // Close modal
 function closeModal() {
-    document.getElementById('recommendation-modal').classList.add('hidden');
+    hideModal('recommendation-modal');
 }
 
 // Utility functions
 function showLoading(show) {
-    document.getElementById('loading').style.display = show ? 'block' : 'none';
+    const loading = document.getElementById('loading');
+    const dashboardContent = document.getElementById('dashboard-content');
+    
+    if (loading) {
+        loading.style.display = show ? 'block' : 'none';
+    }
+    
+    if (dashboardContent) {
+        if (show) {
+            dashboardContent.classList.add('loading');
+        } else {
+            dashboardContent.classList.remove('loading');
+            dashboardContent.style.display = 'block';
+        }
+    }
+}
+
+function hideLoading() {
+    showLoading(false);
 }
 
 function showError(message) {
@@ -967,7 +2070,7 @@ function updateActiveABTests() {
                 <div class="variant-bar">
                     <div class="variant-progress" style="width: ${Math.min(100, (test.results_count / 100) * 100)}%"></div>
                 </div>
-                <div class="text-xs text-gray-500 mt-1">${test.results_count || 0} / 100+ samples</div>
+                <div class="form-help">${test.results_count || 0} / 100+ samples</div>
             </div>
         </div>
     `).join('');
@@ -988,11 +2091,11 @@ function updateRecentTestResults() {
 
 // Create new test modal
 function createNewTest() {
-    document.getElementById('create-test-modal').classList.remove('hidden');
+    showModal('create-test-modal');
 }
 
 function closeCreateTestModal() {
-    document.getElementById('create-test-modal').classList.add('hidden');
+    hideModal('create-test-modal');
     document.getElementById('create-test-form').reset();
 }
 
@@ -1074,19 +2177,19 @@ async function viewTestDetails(testId) {
         
         if (testData.status === 'draft') {
             actionButtons = `
-                <button onclick="generateTestVariants('${testId}')" class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                <button onclick="generateTestVariants('${testId}')" class="btn btn-success text-white px-3 py-1 rounded text-sm hover:bg-green-700">
                     Generate Variants
                 </button>
-                <button onclick="startTest('${testId}')" class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                <button onclick="startTest('${testId}')" class="btn btn-primary text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
                     Start Test
                 </button>
             `;
         } else if (testData.status === 'running') {
             actionButtons = `
-                <button onclick="analyzeTest('${testId}')" class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700">
+                <button onclick="analyzeTest('${testId}')" class="btn" style="background-color: #7c3aed; color: white;">
                     Analyze
                 </button>
-                <button onclick="stopTest('${testId}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                <button onclick="stopTest('${testId}')" class="btn btn-danger text-white px-3 py-1 rounded text-sm hover:bg-red-700">
                     Stop Test
                 </button>
             `;
@@ -1147,7 +2250,7 @@ async function viewTestDetails(testId) {
                                         <div class="font-medium">${variant.name}</div>
                                         <div class="text-xs text-gray-500">${variant.variant_id}</div>
                                     </div>
-                                    ${variant.is_control ? '<span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Control</span>' : ''}
+                                    ${variant.is_control ? '<span class="btn btn-secondary text-gray-800 px-2 py-1 rounded text-xs">Control</span>' : ''}
                                 </div>
                                 
                                 <div class="grid grid-cols-4 gap-4 text-sm">
@@ -1202,7 +2305,7 @@ async function viewTestDetails(testId) {
             </div>
         `;
         
-        document.getElementById('test-details-modal').classList.remove('hidden');
+        showModal('test-details-modal');
         
     } catch (error) {
         console.error('Error loading test details:', error);
@@ -1211,7 +2314,7 @@ async function viewTestDetails(testId) {
 }
 
 function closeTestDetailsModal() {
-    document.getElementById('test-details-modal').classList.add('hidden');
+    hideModal('test-details-modal');
 }
 
 // Generate test variants (placeholder implementation)
@@ -1297,6 +2400,196 @@ async function analyzeTest(testId) {
 // Refresh A/B tests
 function refreshABTests() {
     loadABTestingData();
+}
+
+// Focus management for accessibility
+let focusableElementsString = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, [tabindex="0"], [contenteditable]';
+let previouslyFocusedElement = null;
+
+function trapFocus(element) {
+    let focusableElements = element.querySelectorAll(focusableElementsString);
+    let firstTabStop = focusableElements[0];
+    let lastTabStop = focusableElements[focusableElements.length - 1];
+
+    element.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            if (e.shiftKey) {
+                if (document.activeElement === firstTabStop) {
+                    e.preventDefault();
+                    lastTabStop.focus();
+                }
+            } else {
+                if (document.activeElement === lastTabStop) {
+                    e.preventDefault();
+                    firstTabStop.focus();
+                }
+            }
+        }
+        
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+}
+
+// Enhanced modal functions with focus management
+function viewRecommendation(type) {
+    previouslyFocusedElement = document.activeElement;
+    
+    document.getElementById('modal-title').textContent = `${type.charAt(0).toUpperCase() + type.slice(1)} Optimization`;
+    document.getElementById('modal-content').innerHTML = `
+        <p class="text-gray-600 mb-4">Loading detailed recommendations for ${type}...</p>
+        <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+    `;
+    
+    const modal = document.getElementById('recommendation-modal');
+    modal.classList.remove('hidden');
+    
+    // Focus the modal and trap focus
+    setTimeout(() => {
+        const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (firstFocusable) {
+            firstFocusable.focus();
+        }
+        trapFocus(modal);
+    }, 100);
+    
+    // Load detailed recommendation data
+    loadRecommendationDetails(type);
+}
+
+function createNewTest() {
+    previouslyFocusedElement = document.activeElement;
+    
+    const modal = document.getElementById('create-test-modal');
+    modal.classList.remove('hidden');
+    
+    // Focus the first input
+    setTimeout(() => {
+        const firstInput = modal.querySelector('#test-name');
+        if (firstInput) {
+            firstInput.focus();
+        }
+        trapFocus(modal);
+    }, 100);
+}
+
+function closeModal() {
+    hideModal('recommendation-modal');
+    
+    // Return focus to previously focused element
+    if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+    }
+}
+
+function closeCreateTestModal() {
+    hideModal('create-test-modal');
+    document.getElementById('create-test-form').reset();
+    
+    // Return focus to previously focused element
+    if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+    }
+}
+
+function closeTestDetailsModal() {
+    hideModal('test-details-modal');
+    
+    // Return focus to previously focused element
+    if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+    }
+}
+
+// Enhanced modal functions with animations
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const overlay = modal;
+    const container = modal.querySelector('.modal-container');
+    
+    // Show overlay
+    overlay.classList.remove('hidden');
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+        overlay.classList.add('show');
+        container.classList.add('show');
+    });
+    
+    // Trap focus
+    trapFocus(modal);
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const overlay = modal;
+    const container = modal.querySelector('.modal-container');
+    
+    // Remove animation classes
+    overlay.classList.remove('show');
+    container.classList.remove('show');
+    
+    // Hide after animation
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 300);
+    
+    // Return focus
+    if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+    }
+}
+
+// Enhanced modal functions with animations
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const overlay = modal;
+    const container = modal.querySelector('.modal-container');
+    
+    // Show overlay
+    overlay.classList.remove('hidden');
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+        overlay.classList.add('show');
+        if (container) {
+            container.classList.add('show');
+        }
+    });
+    
+    // Trap focus
+    trapFocus(modal);
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    const overlay = modal;
+    const container = modal.querySelector('.modal-container');
+    
+    // Remove animation classes
+    overlay.classList.remove('show');
+    if (container) {
+        container.classList.remove('show');
+    }
+    
+    // Hide after animation
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 300);
+    
+    // Return focus
+    if (previouslyFocusedElement) {
+        previouslyFocusedElement.focus();
+        previouslyFocusedElement = null;
+    }
 }
 </script>
 {% endblock %}
