@@ -40,8 +40,8 @@ def generate_oauth_token():
         else:
             # Create the flow using the client secrets file
             flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-            # Use port 8081 which is commonly authorized
-            creds = flow.run_local_server(port=8081, prompt='consent')
+            # Use port 8082 to avoid conflicts
+            creds = flow.run_local_server(port=8082, prompt='consent')
         
         # Save the credentials for the next run
         with open(TOKEN_FILE, 'w') as token:

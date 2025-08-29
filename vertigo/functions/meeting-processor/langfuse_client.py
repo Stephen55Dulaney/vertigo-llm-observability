@@ -6,7 +6,7 @@ import os
 import logging
 from typing import Dict, Optional, Any
 from langfuse import Langfuse
-from google.cloud import secretmanager
+# from google.cloud import secretmanager
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +20,15 @@ class CloudFunctionLangfuseClient:
     
     def _get_secret(self, secret_name: str) -> str:
         """Retrieve a secret from Google Cloud Secret Manager."""
-        try:
-            client = secretmanager.SecretManagerServiceClient()
-            name = f"projects/vertigo-466116/secrets/{secret_name}/versions/latest"
-            response = client.access_secret_version(request={"name": name})
-            return response.payload.data.decode("UTF-8")
-        except Exception as e:
-            logger.error(f"Error retrieving secret {secret_name}: {e}")
-            return ""
+        # Temporarily disabled for deployment issue
+        # try:
+        #     client = secretmanager.SecretManagerServiceClient()
+        #     name = f"projects/vertigo-466116/secrets/{secret_name}/versions/latest"
+        #     response = client.access_secret_version(request={"name": name})
+        #     return response.payload.data.decode("UTF-8")
+        # except Exception as e:
+        #     logger.error(f"Error retrieving secret {secret_name}: {e}")
+        return ""
     
     def _initialize_client(self):
         """Initialize the Langfuse client."""
